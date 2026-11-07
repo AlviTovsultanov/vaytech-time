@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   /*@@TZ_HELPERS@@*/
-  const KEY = 'vt_demo_v4';
+  const KEY = 'vt_demo_v5';
   const round2 = (n) => Math.round(n * 100) / 100;
   const DAY = 86400000, HOUR = 3600000;
 
@@ -17,7 +17,7 @@
     const tz = 'America/Chicago';
     D = {
       seq: 100, session: null, ts: Date.now(),
-      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 0, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: 5, timeoff_notice_days: 14, max_shift_hours: 12 },
+      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 0, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: -1, pay_delay_days: 30, timeoff_notice_days: 14, max_shift_hours: 12 },
       users: [], invites: [], entries: [], edits: [], requests: [], payments: [], notifications: []
     };
     const s = D.settings;
@@ -40,7 +40,7 @@
     // deterministic pseudo-random
     let r = 7; const rnd = () => { r = (r * 9301 + 49297) % 233280; return r / 233280; };
     const at = (ymd, h, m) => { const p = parseYmd(ymd); return zonedToUtc(p.y, p.m, p.d, h, m, tz); };
-    for (let w = 3; w >= 0; w--) {
+    for (let w = 7; w >= 0; w--) {
       const ws = addDays(thisWeek, -7 * w);
       workers.forEach((u, ui) => {
         for (let d = 0; d < 6; d++) {
@@ -58,14 +58,15 @@
     }
     // two people on the clock right now
     [techs[0], techs[3]].forEach((u, i) => { const site = sites[i]; D.entries.push({ id: nextId(), user_id: u.id, clock_in: Math.min(Date.now() - 5 * 60000, at(today, 7, i * 20)), clock_out: null, in_lat: site[0], in_lng: site[1], in_acc: 10, created_by: u.id, edited: 0 }); });
-    // weeks before last are already paid
-    for (let w = 2; w <= 3; w++) {
+    // weeks whose net-30 pay date has passed are already paid
+    for (let w = 1; w <= 7; w++) {
       const ws = addDays(thisWeek, -7 * w);
+      if (payDateFor(ws, s) >= today) continue;
       for (const u of workers) {
         const sum = weekSummary(u, ws, s);
         if (sum.gross > 0) {
           const paidAt = at(payDateFor(ws, s), 9, 30);
-          const eta = addDays(payDateFor(ws, s), 3);
+          const eta = addDays(payDateFor(ws, s), 1);
           D.payments.push({ id: nextId(), user_id: u.id, week_start: ws, hours: sum.hours, ot_hours: 0, rate: u.hourly_rate, amount: sum.gross, paid_at: paidAt, paid_by: owner.id, eta });
           notifyAt(u.id, 'Payment sent', `Your pay of ${money(sum.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${sum.hours} hrs) has been sent. It should arrive on ${niceDate(eta)}.`, paidAt);
         }
@@ -94,6 +95,7 @@
 
   /* ---------- helpers mirroring server.js ---------- */
   const S = () => D.settings;
+  const payDateOf = (ws, s) => (D.payOverrides && D.payOverrides[ws]) || payDateFor(ws, s);
   const userById = (id) => D.users.find((u) => u.id === Number(id));
   function weekSummary(user, weekStart, s, now = Date.now()) {
     const from = midnightUtc(weekStart, s.timezone), to = midnightUtc(addDays(weekStart, 7), s.timezone);
@@ -111,7 +113,7 @@
     const gross = round2(regular * rate + overtime * rate * s.ot_multiplier);
     const p = D.payments.find((x) => x.user_id === user.id && x.week_start === weekStart);
     const payment = p ? { ...p, paid_by_name: (userById(p.paid_by) || {}).name } : null;
-    return { week_start: weekStart, week_end: addDays(weekStart, 6), pay_date: payDateFor(weekStart, s), hours, regular, overtime, rate, gross, days: Object.entries(days).map(([date, h]) => ({ date, hours: round2(h) })), open: entries.some((e) => !e.clock_out), entries: entries.map((e) => ({ ...e })), payment };
+    return { week_start: weekStart, week_end: addDays(weekStart, 6), pay_date: payDateOf(weekStart, s), pay_date_custom: !!(D.payOverrides && D.payOverrides[weekStart]), normal_pay_date: payDateFor(weekStart, s), hours, regular, overtime, rate, gross, days: Object.entries(days).map(([date, h]) => ({ date, hours: round2(h) })), open: entries.some((e) => !e.clock_out), entries: entries.map((e) => ({ ...e })), payment };
   }
   function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function niceDate(ymd) { const p = parseYmd(ymd); return new Date(Date.UTC(p.y, p.m - 1, p.d)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }); }
@@ -349,10 +351,19 @@
     }
     return rows;
   }
+  function defaultPayWeek(s) {
+    const cur = currentWeekStart(s), today = ymdOf(Date.now(), s.timezone); let next = null;
+    for (let i = 16; i >= 1; i--) {
+      const ws = addDays(cur, -7 * i), pd = payDateOf(ws, s);
+      if (payrollRows(ws, s).some((r) => !r.idle && !r.payment && r.gross > 0) && pd <= addDays(today, 7)) return ws;
+      if (!next && pd >= today) next = ws;
+    }
+    return next || addDays(cur, -7);
+  }
   route('GET', '/api/admin/payroll', { auth: true, roles: ['owner'] }, ({ query }) => {
-    const s = S(), ws = parseYmd(query.week) ? weekStartOf(query.week, s) : addDays(currentWeekStart(s), -7);
+    const s = S(), ws = parseYmd(query.week) ? weekStartOf(query.week, s) : defaultPayWeek(s);
     const rows = payrollRows(ws, s), a = rows.filter((r) => !r.idle);
-    return { week_start: ws, week_end: addDays(ws, 6), pay_date: payDateFor(ws, s), current_week: currentWeekStart(s), is_current: ws === currentWeekStart(s), rows,
+    return { week_start: ws, week_end: addDays(ws, 6), pay_date: payDateOf(ws, s), normal_pay_date: payDateFor(ws, s), current_week: currentWeekStart(s), is_current: ws === currentWeekStart(s), rows,
       totals: { gross: round2(a.reduce((x, r) => x + r.gross, 0)), paid: round2(a.reduce((x, r) => x + (r.payment ? r.payment.amount : 0), 0)), unpaid: round2(a.filter((r) => !r.payment).reduce((x, r) => x + r.gross, 0)), hours: round2(a.reduce((x, r) => x + r.hours, 0)), people: a.length, paid_count: a.filter((r) => r.payment).length } };
   });
   route('POST', '/api/admin/payroll/mark', { auth: true, roles: ['owner'] }, ({ user, body }) => {
@@ -376,6 +387,15 @@
     return v;
   }
   function etaWords(eta, s) { const today = ymdOf(Date.now(), s.timezone); return eta === today ? 'today' : eta === addDays(today, 1) ? `tomorrow, ${niceDate(eta)}` : `on ${niceDate(eta)}`; }
+  route('POST', '/api/admin/payroll/paydate', { auth: true, roles: ['owner'] }, ({ body }) => {
+    const s = S(), ws = weekStartOf(body.week_start, s), before = payDateOf(ws, s);
+    D.payOverrides = D.payOverrides || {};
+    if (!body.pay_date || body.pay_date === payDateFor(ws, s)) delete D.payOverrides[ws];
+    else { if (!parseYmd(body.pay_date)) fail(400, 'Pick a pay date'); if (body.pay_date <= addDays(ws, 6)) fail(400, 'The pay date has to be after the week ends'); D.payOverrides[ws] = body.pay_date; }
+    const after = payDateOf(ws, s); let told = 0;
+    if (after !== before) for (const r of payrollRows(ws, s)) { if (r.idle || r.payment || !(r.gross > 0)) continue; notify(r.user_id, 'Payday changed', `Pay for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} will now be sent ${niceDate(after)} (it was ${niceDate(before)}).`); told++; }
+    return { ok: true, pay_date: after, notified: told };
+  });
   route('POST', '/api/admin/payroll/eta', { auth: true, roles: ['owner'] }, ({ body }) => {
     const s = S(), ws = weekStartOf(body.week_start, s);
     const p = D.payments.find((x) => x.user_id === Number(body.user_id) && x.week_start === ws); if (!p) fail(404, 'This week is not marked paid yet');
@@ -395,7 +415,8 @@
     if (body.timezone !== undefined) { try { new Intl.DateTimeFormat('en-US', { timeZone: String(body.timezone) }); n.timezone = String(body.timezone); } catch { fail(400, 'Unknown time zone'); } }
     const intIn = (v, lo, hi, l) => { const x = Number(v); if (!Number.isInteger(x) || x < lo || x > hi) fail(400, `${l} is not valid`); return x; };
     if (body.week_start_day !== undefined) n.week_start_day = intIn(body.week_start_day, 0, 6, 'Week start day');
-    if (body.payday_weekday !== undefined) n.payday_weekday = intIn(body.payday_weekday, 0, 6, 'Payday');
+    if (body.payday_weekday !== undefined) n.payday_weekday = intIn(body.payday_weekday, -1, 6, 'Payday');
+    if (body.pay_delay_days !== undefined) n.pay_delay_days = intIn(body.pay_delay_days, 0, 90, 'Net days');
     if (body.max_shift_hours !== undefined) { const x = Number(body.max_shift_hours); if (!(x >= 0 && x <= 24)) fail(400, 'Max shift length must be 0–24 hours'); n.max_shift_hours = x; }
     if (body.timeoff_notice_days !== undefined) n.timeoff_notice_days = intIn(body.timeoff_notice_days, 0, 90, 'Notice days');
     if (body.ot_enabled !== undefined) n.ot_enabled = body.ot_enabled === true || body.ot_enabled === 'on' || body.ot_enabled === '1';

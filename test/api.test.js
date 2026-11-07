@@ -98,6 +98,27 @@ test('full flow', async (t) => {
   assert.equal(row.overtime, 10); assert.equal(row.gross, 1100);
   await owner('PUT', '/api/admin/settings', { ot_enabled: false });
   assert.equal((await owner('GET', '/api/admin/settings')).data.ot_enabled, false);
+  // net 30: pay date is 30 days after the week ends (then the payday weekday, if set)
+  {
+    const end = pr.week_end, plus = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+    await owner('PUT', '/api/admin/settings', { payday_weekday: -1, pay_delay_days: 30 });
+    let p2 = (await owner('GET', `/api/admin/payroll?week=${lastWeek}`)).data;
+    assert.equal(p2.pay_date, plus(end, 30), 'exactly net 30');
+    await owner('PUT', '/api/admin/settings', { payday_weekday: 5 });
+    p2 = (await owner('GET', `/api/admin/payroll?week=${lastWeek}`)).data;
+    assert.ok(p2.pay_date >= plus(end, 30) && p2.pay_date <= plus(end, 36) && new Date(p2.pay_date + 'T00:00:00Z').getUTCDay() === 5, 'next Friday on/after net 30');
+    // owner moves this one week's payday; techs with unpaid hours are told
+    const custom = plus(end, 10);
+    const ch = await owner('POST', '/api/admin/payroll/paydate', { week_start: lastWeek, pay_date: custom });
+    assert.equal(ch.status, 200); assert.equal(ch.data.pay_date, custom); assert.ok(ch.data.notified >= 1);
+    assert.equal((await owner('GET', `/api/admin/payroll?week=${lastWeek}`)).data.pay_date, custom);
+    assert.ok((await tech('GET', '/api/notifications')).data.items.some((n) => n.title === 'Payday changed'));
+    assert.equal((await tech('GET', `/api/me/week?start=${lastWeek}`)).data.pay_date, custom, 'tech sees new payday');
+    assert.equal((await owner('POST', '/api/admin/payroll/paydate', { week_start: lastWeek, pay_date: end })).status, 400, 'must be after week ends');
+    assert.equal((await tech('POST', '/api/admin/payroll/paydate', { week_start: lastWeek, pay_date: custom })).status, 403, 'only the owner');
+    await owner('POST', '/api/admin/payroll/paydate', { week_start: lastWeek, pay_date: null });
+    assert.equal((await owner('GET', `/api/admin/payroll?week=${lastWeek}`)).data.pay_date, p2.pay_date, 'back to normal');
+  }
   // different rates per person: rate set at invite is what's used
   assert.equal(db.prepare('SELECT hourly_rate FROM users WHERE id = ?').get(techId).hourly_rate, 20);
   assert.equal(db.prepare('SELECT hourly_rate FROM users WHERE id = ?').get(leadId).hourly_rate, 30);

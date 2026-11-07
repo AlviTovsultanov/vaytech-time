@@ -116,6 +116,12 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
 try { db.exec('ALTER TABLE time_entries ADD COLUMN auto_capped INTEGER NOT NULL DEFAULT 0'); } catch { /* already there */ }
 try { db.exec('ALTER TABLE payments ADD COLUMN eta TEXT'); } catch { /* already there */ }
+db.exec('CREATE TABLE IF NOT EXISTS pay_date_overrides (week_start TEXT PRIMARY KEY, pay_date TEXT NOT NULL, set_by INTEGER, set_at INTEGER)');
+// A payday the owner set by hand for one week wins over the normal schedule.
+function payDateOf(weekStart, s) {
+  const o = db.prepare('SELECT pay_date FROM pay_date_overrides WHERE week_start = ?').get(weekStart);
+  return o ? o.pay_date : payDateFor(weekStart, s);
+}
 
 const DEFAULT_SETTINGS = {
   company_name: 'VayTech',
@@ -124,7 +130,8 @@ const DEFAULT_SETTINGS = {
   ot_enabled: '0',          // 0 = no overtime: every hour paid at the person's own rate
   ot_threshold: '40',       // hours per week before overtime (only if ot_enabled)
   ot_multiplier: '1.5',
-  payday_weekday: '5',      // Friday after the week ends
+  payday_weekday: '5',      // 0=Sun … 6=Sat, or -1 = no set weekday (pay exactly on the net date)
+  pay_delay_days: '30',     // net terms: pay is due this many days after the week ends
   timeoff_notice_days: '14',
   max_shift_hours: '12'     // forgot to clock out? shifts are cut to this many hours (0 = no limit)
 };
@@ -142,6 +149,7 @@ function getSettings() {
     ot_threshold: Number(s.ot_threshold),
     ot_multiplier: Number(s.ot_multiplier),
     payday_weekday: Number(s.payday_weekday),
+    pay_delay_days: Number(s.pay_delay_days),
     timeoff_notice_days: Number(s.timeoff_notice_days),
     max_shift_hours: Number(s.max_shift_hours)
   };
@@ -194,10 +202,13 @@ function dowOf(ymd) { const p = parseYmd(ymd); return new Date(Date.UTC(p.y, p.m
 function midnightUtc(ymd, tz) { const p = parseYmd(ymd); return zonedToUtc(p.y, p.m, p.d, 0, 0, tz); }
 function weekStartOf(ymd, s) { return addDays(ymd, -((dowOf(ymd) - s.week_start_day + 7) % 7)); }
 function currentWeekStart(s) { return weekStartOf(ymdOf(Date.now(), s.timezone), s); }
+// Pay date = week end + net days (at least 1), then moved forward to the payday weekday if one is set.
 function payDateFor(weekStart, s) {
   const end = addDays(weekStart, 6);
-  for (let i = 1; i <= 7; i++) { const d = addDays(end, i); if (dowOf(d) === s.payday_weekday) return d; }
-  return addDays(end, 1);
+  const target = addDays(end, Math.max(1, Number(s.pay_delay_days) || 0));
+  if (!(s.payday_weekday >= 0 && s.payday_weekday <= 6)) return target;
+  for (let i = 0; i < 7; i++) { const d = addDays(target, i); if (dowOf(d) === s.payday_weekday) return d; }
+  return target;
 }
 function parseLocalDateTime(str, tz) {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(str || ''));
@@ -236,7 +247,7 @@ function weekSummary(user, weekStart, s, now = Date.now()) {
     `SELECT p.*, u.name AS paid_by_name FROM payments p LEFT JOIN users u ON u.id = p.paid_by WHERE p.user_id = ? AND p.week_start = ?`
   ).get(user.id, weekStart) || null;
   return {
-    week_start: weekStart, week_end: addDays(weekStart, 6), pay_date: payDateFor(weekStart, s),
+    week_start: weekStart, week_end: addDays(weekStart, 6), pay_date: payDateOf(weekStart, s), pay_date_custom: !!db.prepare('SELECT 1 FROM pay_date_overrides WHERE week_start = ?').get(weekStart), normal_pay_date: payDateFor(weekStart, s),
     hours, regular, overtime, rate, gross,
     days: Object.entries(days).map(([date, h]) => ({ date, hours: round2(h) })),
     open: entries.some((e) => !e.clock_out),
@@ -765,13 +776,26 @@ function payrollRows(weekStart, s) {
   }
   return rows;
 }
+// Which week to show first: the oldest week that is due (or due within a week) and not fully paid;
+// otherwise the week with the next upcoming pay date.
+function defaultPayWeek(s) {
+  const cur = currentWeekStart(s), today = ymdOf(Date.now(), s.timezone);
+  let next = null;
+  for (let i = 16; i >= 1; i--) {
+    const ws = addDays(cur, -7 * i), pd = payDateOf(ws, s);
+    const unpaid = payrollRows(ws, s).some((r) => !r.idle && !r.payment && r.gross > 0);
+    if (unpaid && pd <= addDays(today, 7)) return ws;
+    if (!next && pd >= today) next = ws;
+  }
+  return next || addDays(cur, -7);
+}
 route('GET', '/api/admin/payroll', { auth: true, roles: ['owner'] }, (req, res, { query }) => {
   const s = getSettings();
-  const ws = parseYmd(query.week) ? weekStartOf(query.week, s) : addDays(currentWeekStart(s), -7);
+  const ws = parseYmd(query.week) ? weekStartOf(query.week, s) : defaultPayWeek(s);
   const rows = payrollRows(ws, s);
   const active = rows.filter((r) => !r.idle);
   return {
-    week_start: ws, week_end: addDays(ws, 6), pay_date: payDateFor(ws, s), current_week: currentWeekStart(s),
+    week_start: ws, week_end: addDays(ws, 6), pay_date: payDateOf(ws, s), normal_pay_date: payDateFor(ws, s), current_week: currentWeekStart(s),
     is_current: ws === currentWeekStart(s), rows,
     totals: {
       gross: round2(active.reduce((a, r) => a + r.gross, 0)),
@@ -814,6 +838,29 @@ function etaWords(eta, s) {
   if (eta === addDays(today, 1)) return `tomorrow, ${niceDate(eta)}`;
   return `on ${niceDate(eta)}`;
 }
+route('POST', '/api/admin/payroll/paydate', { auth: true, roles: ['owner'] }, (req, res, { user, body }) => {
+  const s = getSettings();
+  const ws = parseYmd(body.week_start) ? weekStartOf(body.week_start, s) : fail(400, 'Bad week');
+  const before = payDateOf(ws, s);
+  if (body.pay_date === null || body.pay_date === '' || body.pay_date === payDateFor(ws, s)) {
+    db.prepare('DELETE FROM pay_date_overrides WHERE week_start = ?').run(ws);
+  } else {
+    if (!parseYmd(body.pay_date)) fail(400, 'Pick a pay date');
+    if (body.pay_date <= addDays(ws, 6)) fail(400, 'The pay date has to be after the week ends');
+    if (body.pay_date > addDays(ws, 120)) fail(400, 'Pick a pay date within about 4 months of the week');
+    db.prepare('INSERT INTO pay_date_overrides (week_start, pay_date, set_by, set_at) VALUES (?, ?, ?, ?) ON CONFLICT(week_start) DO UPDATE SET pay_date = excluded.pay_date, set_by = excluded.set_by, set_at = excluded.set_at').run(ws, body.pay_date, user.id, Date.now());
+  }
+  const after = payDateOf(ws, s);
+  let told = 0;
+  if (after !== before) {
+    for (const r of payrollRows(ws, s)) {
+      if (r.idle || r.payment || !(r.gross > 0)) continue;
+      notify(r.user_id, 'Payday changed', `Pay for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} will now be sent ${niceDate(after)} (it was ${niceDate(before)}).`);
+      told++;
+    }
+  }
+  return { ok: true, pay_date: after, notified: told };
+});
 route('POST', '/api/admin/payroll/eta', { auth: true, roles: ['owner'] }, (req, res, { body }) => {
   const s = getSettings();
   const ws = parseYmd(body.week_start) ? weekStartOf(body.week_start, s) : fail(400, 'Bad week');
@@ -862,7 +909,8 @@ route('PUT', '/api/admin/settings', { auth: true, roles: ['owner'] }, (req, res,
   }
   const intIn = (v, lo, hi, label) => { const n = Number(v); if (!Number.isInteger(n) || n < lo || n > hi) fail(400, `${label} is not valid`); return n; };
   if (body.week_start_day !== undefined) next.week_start_day = intIn(body.week_start_day, 0, 6, 'Week start day');
-  if (body.payday_weekday !== undefined) next.payday_weekday = intIn(body.payday_weekday, 0, 6, 'Payday');
+  if (body.payday_weekday !== undefined) next.payday_weekday = intIn(body.payday_weekday, -1, 6, 'Payday');
+  if (body.pay_delay_days !== undefined) next.pay_delay_days = intIn(body.pay_delay_days, 0, 90, 'Net days');
   if (body.max_shift_hours !== undefined) { const n = Number(body.max_shift_hours); if (!(n >= 0 && n <= 24)) fail(400, 'Max shift length must be 0–24 hours'); next.max_shift_hours = n; }
   if (body.timeoff_notice_days !== undefined) next.timeoff_notice_days = intIn(body.timeoff_notice_days, 0, 90, 'Notice days');
   if (body.ot_enabled !== undefined) next.ot_enabled = body.ot_enabled === true || body.ot_enabled === '1' || body.ot_enabled === 'on';

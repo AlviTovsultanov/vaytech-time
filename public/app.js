@@ -527,10 +527,11 @@
     const rows = d.rows.filter((r) => !r.idle);
     const t = d.totals;
     v.innerHTML = `<h1>Payroll</h1>
-      <div class="weeknav"><button class="icon-btn" id="pv" aria-label="Previous week">${I.left}</button><div class="lbl">${esc(range(d.week_start, d.week_end))}<small>${d.is_current ? 'This week (still in progress)' : `Payday ${esc(fmtDay(d.pay_date))}`}</small></div><button class="icon-btn" id="nx" aria-label="Next week" ${d.is_current ? 'disabled style="opacity:.3"' : ''}>${I.right}</button></div>
+      <div class="weeknav"><button class="icon-btn" id="pv" aria-label="Previous week">${I.left}</button><div class="lbl">${esc(range(d.week_start, d.week_end))}<small>${d.is_current ? `This week · pays ${esc(fmtDay(d.pay_date))}` : `Payday ${esc(fmtDay(d.pay_date))}${d.pay_date === today() ? ' · today' : d.pay_date > today() ? ` · in ${Math.round((ymdParts(d.pay_date) - ymdParts(today())) / 86400000)} days` : ' · due'}`}</small></div><button class="icon-btn" id="nx" aria-label="Next week" ${d.is_current ? 'disabled style="opacity:.3"' : ''}>${I.right}</button></div>
+      <div style="text-align:center;margin:-6px 0 14px"><button class="btn ghost sm" id="chpd">Change payday for this week</button></div>
       <div class="split"><div class="card"><div class="stat-label">Left to pay</div><div class="stat-big num" style="font-size:30px">${money(t.unpaid)}</div><div class="muted small" style="margin-top:6px">${t.people - t.paid_count} of ${t.people} people</div></div>
       <div class="card"><div class="stat-label">Week total</div><div class="stat-big num" style="font-size:30px">${money(t.gross)}</div><div class="muted small" style="margin-top:6px">${dec(t.hours)} hrs · ${money(t.paid)} sent</div></div></div>
-      ${d.is_current ? '<div class="banner" style="margin-top:10px"><div class="muted small">This week isn\'t over yet. Amounts will keep growing as people work. Usually you pay <b>last week</b> — tap ‹ to go back.</div></div>' : ''}
+      ${d.is_current ? '<div class="banner" style="margin-top:10px"><div class="muted small">This week isn\'t over yet. Amounts will keep growing as people work. Tap ‹ to see earlier weeks.</div></div>' : ''}
       <h2>Tap the box once you've sent the money</h2>
       ${rows.length ? `<div class="list">${rows.map((r) => `<div class="pay-row">
         <button class="check ${r.payment ? 'done' : ''}" data-pay="${r.user_id}" aria-label="${r.payment ? 'Paid' : 'Mark paid'}" ${!r.payment && (r.open || r.gross <= 0) ? 'disabled' : ''}>${I.check}</button>
@@ -540,6 +541,21 @@
         ${r.open ? '<div class="changed">Still clocked in — clock them out in Team first</div>' : ''}</div>
         <div class="r num" style="font-weight:800;font-size:17px">${money(r.payment ? r.payment.amount : r.gross)}</div></div>`).join('')}</div>` : '<div class="list"><div class="empty">No hours for this week.</div></div>'}
       ${rows.length ? `<a class="btn ghost block" style="margin-top:14px" href="/api/admin/payroll.csv?week=${d.week_start}">Download spreadsheet (CSV)</a>` : ''}`;
+    v.querySelector('#chpd').onclick = () => {
+      openSheet('Change payday', `<p class="muted" style="margin-top:0">For the week of <b style="color:var(--text)">${esc(range(d.week_start, d.week_end))}</b> only. Your normal schedule (Settings) stays the same for other weeks.</p>
+        <label class="f"><span>Pay date</span><input class="input" type="date" id="pdd" value="${d.pay_date}" min="${addDays(d.week_end, 1)}"></label>
+        <p class="hint" style="margin:-6px 0 14px">Normal payday for this week: ${esc(fmtDay(d.normal_pay_date))}. Everyone with unpaid hours this week is notified of the change.</p>
+        <div id="pd-err"></div><button class="btn block" id="pd-save">Save pay date</button>
+        ${d.pay_date !== d.normal_pay_date ? `<button class="btn ghost block" id="pd-reset" style="margin-top:10px">Back to normal (${esc(fmtDay(d.normal_pay_date))})</button>` : ''}`, (bd) => {
+        const go = async (val, btn) => {
+          btn.disabled = true;
+          try { const r = await api('POST', '/api/admin/payroll/paydate', { week_start: d.week_start, pay_date: val }); closeSheet(); toast(`Payday set to ${fmtDay(r.pay_date)}${r.notified ? ` — ${r.notified} people notified` : ''}`); showTab(); }
+          catch (x) { bd.querySelector('#pd-err').innerHTML = `<div class="err">${esc(x.message)}</div>`; btn.disabled = false; }
+        };
+        bd.querySelector('#pd-save').onclick = (e) => go(bd.querySelector('#pdd').value, e.target);
+        const rs = bd.querySelector('#pd-reset'); if (rs) rs.onclick = (e) => go(null, e.target);
+      });
+    };
     v.querySelector('#pv').onclick = () => { S.payWeek = addDays(d.week_start, -7); showTab(); };
     const nx = v.querySelector('#nx'); if (!nx.disabled) nx.onclick = () => { S.payWeek = addDays(d.week_start, 7); showTab(); };
     v.querySelectorAll('[data-pay]').forEach((b) => {
@@ -638,8 +654,9 @@
     b.innerHTML = `<form><div class="form-err"></div>
       <label class="f"><span>Company name</span><input class="input" name="company_name" value="${esc(s.company_name)}"></label>
       <div class="split"><label class="f"><span>Week starts</span><select class="input" name="week_start_day">${opts(s.week_start_day)}</select></label>
-      <label class="f"><span>Payday</span><select class="input" name="payday_weekday">${opts(s.payday_weekday)}</select></label></div>
-      <p class="hint" style="margin:-6px 0 14px">Pay goes out on the first payday after the week ends.</p>
+      <label class="f"><span>Payday</span><select class="input" name="payday_weekday"><option value="-1" ${s.payday_weekday < 0 ? 'selected' : ''}>No set day</option>${opts(s.payday_weekday)}</select></label></div>
+      <label class="f"><span>Net days (pay is due this many days after the week ends)</span><input class="input" name="pay_delay_days" id="netd" type="number" min="0" max="90" value="${s.pay_delay_days}"></label>
+      <p class="hint" id="payex" style="margin:-6px 0 14px"></p>
       <label class="f row" style="gap:10px"><input type="checkbox" name="ot_enabled" id="ote" ${s.ot_enabled ? 'checked' : ''} style="width:20px;height:20px"><span style="margin:0;color:var(--text)">Pay overtime</span></label>
       <div class="split" id="otf" ${s.ot_enabled ? '' : 'hidden'}><label class="f"><span>Overtime after (hrs/week)</span><input class="input" name="ot_threshold" type="number" step="0.5" value="${s.ot_threshold}"></label>
       <label class="f"><span>Overtime rate (×)</span><input class="input" name="ot_multiplier" type="number" step="0.1" value="${s.ot_multiplier}"></label></div>
@@ -650,6 +667,16 @@
       <a class="btn ghost block" style="margin-top:10px" href="/api/admin/backup">Download a backup of all data</a>
       <p class="hint" style="text-align:center">Do this once a week and keep the file somewhere safe.</p>`;
     b.querySelector('#ote').onchange = (e) => { b.querySelector('#otf').hidden = !e.target.checked; };
+    const f = b.querySelector('form');
+    const example = () => {
+      const end = addDays(addDays(today(), -((ymdParts(today()).getUTCDay() - Number(f.week_start_day.value) + 7) % 7)), 6);
+      let pd = addDays(end, Math.max(1, Number(f.pay_delay_days.value) || 0));
+      const wd = Number(f.payday_weekday.value);
+      if (wd >= 0) while (ymdParts(pd).getUTCDay() !== wd) pd = addDays(pd, 1);
+      b.querySelector('#payex').textContent = `Example: the week ending ${fmtDay(end)} is paid ${fmtDay(pd)}.`;
+    };
+    ['week_start_day', 'payday_weekday', 'pay_delay_days'].forEach((n) => f[n].addEventListener('input', example));
+    example();
     bindForm(b.querySelector('form'), async (d) => { d.ot_enabled = b.querySelector('#ote').checked; const r = await api('PUT', '/api/admin/settings', d); S.boot.settings = { ...S.boot.settings, ...r }; S.tz = r.timezone; closeSheet(); toast('Settings saved'); renderShell(); });
   }
 
