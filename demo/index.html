@@ -1,0 +1,1538 @@
+<title>VayTech Time Demo</title>
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #000;
+  --surface: #111;
+  --surface-2: #1a1a1a;
+  --line: #262626;
+  --text: #f5f5f5;
+  --muted: #8c8c8c;
+  --dim: #5c5c5c;
+  --white: #fff;
+  --on: #34d399;
+  --on-bg: rgba(52, 211, 153, .12);
+  --warn: #fbbf24;
+  --warn-bg: rgba(251, 191, 36, .12);
+  --bad: #f87171;
+  --bad-bg: rgba(248, 113, 113, .12);
+  --radius: 16px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 15px/1.45 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; min-height: 100dvh; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--white); }
+.num { font-variant-numeric: tabular-nums; }
+
+.boot { min-height: 100dvh; display: grid; place-items: center; }
+.logo-mark { width: 56px; height: 56px; border-radius: 14px; background: var(--white); color: #000; display: grid; place-items: center; font-weight: 800; font-size: 30px; letter-spacing: -1px; }
+
+/* ---------- shell ---------- */
+.shell { max-width: 560px; margin: 0 auto; min-height: 100dvh; padding: calc(var(--safe-t) + 64px) 16px calc(var(--safe-b) + 96px); }
+.topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: rgba(0,0,0,.86); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--line); padding-top: var(--safe-t); }
+.topbar-in { max-width: 560px; margin: 0 auto; height: 56px; padding: 0 12px 0 16px; display: flex; align-items: center; gap: 10px; }
+.brand { font-weight: 800; letter-spacing: .14em; font-size: 15px; flex: 1; display: flex; align-items: center; gap: 10px; }
+.brand .logo-mark { width: 28px; height: 28px; font-size: 16px; border-radius: 8px; letter-spacing: 0; }
+.icon-btn { width: 42px; height: 42px; border-radius: 12px; border: 0; background: transparent; display: grid; place-items: center; position: relative; cursor: pointer; }
+.icon-btn:active { background: var(--surface-2); }
+.icon-btn svg { width: 22px; height: 22px; }
+.badge { position: absolute; top: 6px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--bad); color: #000; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.badge[hidden] { display: none; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+
+.tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: rgba(0,0,0,.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); }
+.tabbar-in { max-width: 560px; margin: 0 auto; display: flex; }
+.tab { flex: 1; border: 0; background: none; padding: 9px 2px 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--dim); font-size: 11px; font-weight: 600; cursor: pointer; position: relative; }
+.tab svg { width: 23px; height: 23px; }
+.tab.active { color: var(--white); }
+.tab .badge { top: 3px; right: calc(50% - 22px); }
+
+h1 { font-size: 26px; line-height: 1.15; letter-spacing: -.02em; margin: 8px 0 16px; font-weight: 800; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 26px 0 10px; font-weight: 700; }
+h2:first-child { margin-top: 4px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.between { justify-content: space-between; }
+.grow { flex: 1; min-width: 0; }
+.stack > * + * { margin-top: 10px; }
+
+/* ---------- cards ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.card + .card { margin-top: 10px; }
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 0; background: none; width: 100%; text-align: left; cursor: pointer; }
+.item + .item { border-top: 1px solid var(--line); }
+button.item:active { background: var(--surface-2); }
+.item .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .s { color: var(--muted); font-size: 13px; }
+.item .r { text-align: right; flex-shrink: 0; }
+.chev { color: var(--dim); flex-shrink: 0; }
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.pill.on { background: var(--on-bg); color: var(--on); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex-shrink: 0; }
+.dot.on { background: var(--on); box-shadow: 0 0 0 4px var(--on-bg); }
+
+/* ---------- clock ---------- */
+.clock-card { text-align: center; padding: 26px 16px 22px; }
+.clock-status { font-size: 14px; color: var(--muted); min-height: 21px; }
+.clock-timer { font-size: 44px; font-weight: 800; letter-spacing: -.03em; margin: 6px 0 18px; }
+.clock-btn { width: 190px; height: 190px; border-radius: 50%; border: 0; cursor: pointer; font-weight: 800; font-size: 20px; letter-spacing: .06em; background: var(--white); color: #000; box-shadow: 0 0 0 10px #161616, 0 0 0 11px var(--line); transition: transform .12s; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.clock-btn:active { transform: scale(.96); }
+.clock-btn.out { background: #000; color: var(--white); box-shadow: 0 0 0 10px var(--on-bg), 0 0 0 11px var(--on); }
+.clock-btn svg { width: 30px; height: 30px; }
+.clock-btn:disabled { opacity: .6; }
+.loc-note { margin-top: 18px; font-size: 12px; color: var(--dim); display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+.stat-big { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 6px; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.split .card { margin: 0; }
+.deposit { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.deposit svg { width: 22px; height: 22px; flex-shrink: 0; }
+
+.bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 110px; margin-top: 16px; }
+.bar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+.bar i { display: block; width: 100%; max-width: 30px; border-radius: 6px 6px 3px 3px; background: var(--white); min-height: 3px; }
+.bar i.zero { background: var(--line); }
+.bar i.today { background: var(--on); }
+.bar span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.bar b { font-size: 11px; font-weight: 600; color: var(--text); }
+
+/* ---------- forms ---------- */
+label.f { display: block; margin-bottom: 14px; }
+label.f > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+.input, select.input, textarea.input { width: 100%; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 13px 14px; outline: none; font-size: 16px; }
+.input:focus { border-color: #555; }
+textarea.input { min-height: 88px; resize: vertical; }
+input[type="date"].input, input[type="datetime-local"].input { min-height: 50px; }
+.hint { font-size: 12px; color: var(--dim); margin-top: 6px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 12px; padding: 14px 18px; font-weight: 700; cursor: pointer; background: var(--white); color: #000; font-size: 15px; text-decoration: none; }
+.btn:active { opacity: .85; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.block { width: 100%; }
+.btn.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); }
+.btn.danger { background: var(--bad-bg); color: var(--bad); }
+.btn.ok { background: var(--on); color: #000; }
+.btn.sm { padding: 9px 13px; font-size: 13px; border-radius: 10px; }
+.btn svg { width: 18px; height: 18px; }
+.btn-row { display: flex; gap: 10px; }
+.btn-row > * { flex: 1; }
+.err { background: var(--bad-bg); color: var(--bad); border-radius: 12px; padding: 11px 14px; font-size: 14px; margin-bottom: 14px; }
+.seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
+.seg button { flex: 1; border: 0; background: none; padding: 9px 6px; border-radius: 9px; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; }
+.seg button.on { background: var(--white); color: #000; }
+
+.action-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.action { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; text-align: left; cursor: pointer; width: 100%; }
+.action:active { background: var(--surface-2); }
+.action .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; flex-shrink: 0; }
+.action .ic svg { width: 22px; height: 22px; }
+.action .t { font-weight: 700; }
+.action .s { font-size: 13px; color: var(--muted); }
+
+.weeknav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.weeknav .lbl { flex: 1; text-align: center; font-weight: 700; }
+.weeknav .lbl small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; }
+
+/* ---------- payroll ---------- */
+.pay-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+.pay-row + .pay-row { border-top: 1px solid var(--line); }
+.check { width: 44px; height: 44px; border-radius: 12px; border: 2px solid #444; background: transparent; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; color: transparent; }
+.check svg { width: 24px; height: 24px; }
+.check.done { background: var(--on); border-color: var(--on); color: #000; }
+.check:disabled { opacity: .35; cursor: default; }
+.changed { color: var(--warn); font-size: 12px; margin-top: 3px; }
+
+/* ---------- auth ---------- */
+.auth { max-width: 420px; margin: 0 auto; min-height: 100dvh; padding: calc(var(--safe-t) + 48px) 20px 40px; display: flex; flex-direction: column; }
+.auth .logo-mark { margin-bottom: 26px; }
+.auth h1 { font-size: 30px; margin: 0 0 6px; }
+.auth .sub { color: var(--muted); margin: 0 0 28px; }
+.wordmark { font-weight: 800; letter-spacing: .18em; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+
+/* ---------- sheet ---------- */
+.sheet-bg { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.7); display: flex; align-items: flex-end; justify-content: center; animation: fade .15s; }
+.sheet { background: #0d0d0d; border: 1px solid var(--line); border-bottom: 0; border-radius: 22px 22px 0 0; width: 100%; max-width: 560px; max-height: 92dvh; overflow-y: auto; padding: 8px 16px calc(var(--safe-b) + 22px); animation: up .2s ease-out; }
+.sheet-grab { width: 40px; height: 5px; background: #333; border-radius: 3px; margin: 4px auto 12px; }
+.sheet-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.sheet-head h3 { flex: 1; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } }
+@keyframes fade { from { opacity: 0; } }
+@media (min-width: 600px) { .sheet-bg { align-items: center; } .sheet { border-radius: 22px; border-bottom: 1px solid var(--line); } }
+
+.qr-box { background: #fff; border-radius: 16px; padding: 16px; width: 252px; height: 252px; margin: 6px auto 14px; display: grid; place-items: center; }
+.qr-box svg { width: 220px; height: 220px; display: block; }
+.linkbox { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; font-size: 13px; word-break: break-all; color: var(--muted); margin-bottom: 12px; }
+
+#toast { position: fixed; left: 50%; bottom: calc(var(--safe-b) + 88px); transform: translateX(-50%) translateY(20px); background: var(--white); color: #000; padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; opacity: 0; pointer-events: none; transition: .2s; z-index: 60; max-width: calc(100% - 32px); text-align: center; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.bad { background: var(--bad); }
+
+.banner { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; display: flex; gap: 12px; align-items: flex-start; font-size: 14px; }
+.banner .x { border: 0; background: none; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; padding: 0 2px; }
+.notif { padding: 14px 16px; }
+.notif + .notif { border-top: 1px solid var(--line); }
+.notif.unread { background: #151515; }
+.notif .t { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.notif .b { color: #cfcfcf; font-size: 14px; margin-top: 2px; }
+.notif .w { color: var(--dim); font-size: 12px; margin-top: 4px; }
+.kv { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; }
+.kv + .kv { border-top: 1px solid var(--line); }
+.kv span:first-child { color: var(--muted); }
+.spin { width: 22px; height: 22px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: sp .8s linear infinite; margin: 30px auto; }
+@keyframes sp { to { transform: rotate(360deg); } }
+[hidden] { display: none !important; }
+label.f.row { display: flex; } label.f.row > span { display: inline; margin: 0; }
+
+
+.demo-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 40; height: 48px; background: #fff; color: #000; padding-top: env(safe-area-inset-top, 0px); box-sizing: content-box; }
+.demo-in { max-width: 560px; margin: 0 auto; height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 10px 0 12px; }
+.demo-tag { background: #000; color: #fff; font-weight: 800; font-size: 11px; letter-spacing: .12em; padding: 4px 8px; border-radius: 6px; flex-shrink: 0; }
+.demo-in label { font-size: 12px; font-weight: 600; color: #555; flex-shrink: 0; }
+.demo-in select { flex: 1; min-width: 0; font: inherit; font-size: 14px; font-weight: 700; color: #000; background: #f1f1f1; border: 0; border-radius: 8px; padding: 7px 8px; }
+.demo-in button { font: inherit; font-size: 12px; font-weight: 700; border: 1px solid #ccc; background: #fff; color: #000; border-radius: 8px; padding: 7px 9px; cursor: pointer; flex-shrink: 0; }
+.demo-in button.hot { background: #000; color: #fff; border-color: #000; }
+body.demo .topbar { top: calc(48px + env(safe-area-inset-top, 0px)); padding-top: 0; }
+body.demo .shell { padding-top: calc(env(safe-area-inset-top, 0px) + 112px); }
+body.demo .auth { padding-top: calc(env(safe-area-inset-top, 0px) + 96px); }
+@media (max-width: 380px) { .demo-in label { display: none; } }
+
+body { background: var(--bg); }
+</style>
+<div class="demo-bar"><div class="demo-in">
+  <span class="demo-tag">DEMO</span>
+  <label for="demo-who">View as</label>
+  <select id="demo-who" aria-label="View the app as"></select>
+  <button id="demo-inv" class="hot" hidden title="Open the invite you just created, as the new person">Sign up ›</button>
+  <button id="demo-reset">Reset</button>
+</div></div>
+<div id="app"><div class="boot"><div class="logo-mark">V</div></div></div>
+<div id="sheet-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>document.body.classList.add('demo');</script>
+<script>
+
+// Minimal QR code generator (byte mode, error correction level M, versions 1–9) -> SVG.
+// Follows the ISO/IEC 18004 algorithm (structure after Nayuki's reference implementation).
+
+const ECC_M = [-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26];
+const BLOCKS_M = [-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16];
+const MAX_VER = 9; // verified range; ~180 bytes, far more than an invite link needs
+
+function rawModules(ver) {
+  let r = (16 * ver + 128) * ver + 64;
+  if (ver >= 2) { const n = Math.floor(ver / 7) + 2; r -= (25 * n - 10) * n - 55; if (ver >= 7) r -= 36; }
+  return r;
+}
+const dataCodewords = (ver) => Math.floor(rawModules(ver) / 8) - ECC_M[ver] * BLOCKS_M[ver];
+function gfMul(x, y) { let z = 0; for (let i = 7; i >= 0; i--) { z = (z << 1) ^ ((z >>> 7) * 0x11d); z ^= ((y >>> i) & 1) * x; } return z & 0xff; }
+function rsDivisor(deg) {
+  const r = new Array(deg).fill(0); r[deg - 1] = 1; let root = 1;
+  for (let i = 0; i < deg; i++) {
+    for (let j = 0; j < r.length; j++) { r[j] = gfMul(r[j], root); if (j + 1 < r.length) r[j] ^= r[j + 1]; }
+    root = gfMul(root, 0x02);
+  }
+  return r;
+}
+function rsRemainder(data, div) {
+  const r = new Array(div.length).fill(0);
+  for (const b of data) { const f = b ^ r.shift(); r.push(0); div.forEach((c, i) => { r[i] ^= gfMul(c, f); }); }
+  return r;
+}
+
+function encode(text) {
+  const bytes = [...new TextEncoder().encode(String(text))];
+  let ver = 1;
+  for (; ver <= MAX_VER; ver++) { const cc = ver < 10 ? 8 : 16; if (4 + cc + bytes.length * 8 <= dataCodewords(ver) * 8) break; }
+  if (ver > MAX_VER) throw new Error('Text too long for QR');
+  const cap = dataCodewords(ver) * 8;
+  const bits = [];
+  const put = (v, n) => { for (let i = n - 1; i >= 0; i--) bits.push((v >>> i) & 1); };
+  put(4, 4); put(bytes.length, ver < 10 ? 8 : 16); for (const b of bytes) put(b, 8);
+  put(0, Math.min(4, cap - bits.length));
+  put(0, (8 - (bits.length % 8)) % 8);
+  for (let pad = 0xec; bits.length < cap; pad ^= 0xec ^ 0x11) put(pad, 8);
+  const data = [];
+  for (let i = 0; i < bits.length; i += 8) data.push(bits.slice(i, i + 8).reduce((a, b) => (a << 1) | b, 0));
+
+  // error correction + interleave
+  const nb = BLOCKS_M[ver], eccLen = ECC_M[ver], raw = Math.floor(rawModules(ver) / 8);
+  const nShort = nb - (raw % nb), shortLen = Math.floor(raw / nb);
+  const div = rsDivisor(eccLen);
+  const blocks = [];
+  for (let i = 0, k = 0; i < nb; i++) {
+    const dat = data.slice(k, k + shortLen - eccLen + (i < nShort ? 0 : 1)); k += dat.length;
+    const ecc = rsRemainder(dat, div);
+    if (i < nShort) dat.push(0);
+    blocks.push(dat.concat(ecc));
+  }
+  const all = [];
+  for (let i = 0; i < blocks[0].length; i++) blocks.forEach((b, j) => { if (i !== shortLen - eccLen || j >= nShort) all.push(b[i]); });
+
+  // matrix
+  const size = ver * 4 + 17;
+  const mod = Array.from({ length: size }, () => new Array(size).fill(false));
+  const fn = Array.from({ length: size }, () => new Array(size).fill(false));
+  const setF = (x, y, d) => { mod[y][x] = d; fn[y][x] = true; };
+  for (let i = 0; i < size; i++) { setF(6, i, i % 2 === 0); setF(i, 6, i % 2 === 0); }
+  for (const [cx, cy] of [[3, 3], [size - 4, 3], [3, size - 4]]) {
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const d = Math.max(Math.abs(dx), Math.abs(dy)), x = cx + dx, y = cy + dy;
+      if (x >= 0 && x < size && y >= 0 && y < size) setF(x, y, d !== 2 && d !== 4);
+    }
+  }
+  if (ver > 1) {
+    const n = Math.floor(ver / 7) + 2;
+    const step = Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2;
+    const pos = [6];
+    for (let p = size - 7; pos.length < n; p -= step) pos.splice(1, 0, p);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if ((i === 0 && j === 0) || (i === 0 && j === n - 1) || (i === n - 1 && j === 0)) continue;
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) setF(pos[i] + dx, pos[j] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }
+  }
+  const drawFormat = (mask) => {
+    const d = (0 << 3) | mask; // level M = 00
+    let rem = d; for (let i = 0; i < 10; i++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+    const b = ((d << 10) | rem) ^ 0x5412;
+    const bit = (i) => ((b >>> i) & 1) === 1;
+    for (let i = 0; i <= 5; i++) setF(8, i, bit(i));
+    setF(8, 7, bit(6)); setF(8, 8, bit(7)); setF(7, 8, bit(8));
+    for (let i = 9; i < 15; i++) setF(14 - i, 8, bit(i));
+    for (let i = 0; i < 8; i++) setF(size - 1 - i, 8, bit(i));
+    for (let i = 8; i < 15; i++) setF(8, size - 15 + i, bit(i));
+    setF(8, size - 8, true);
+  };
+  drawFormat(0); // reserve
+  if (ver >= 7) {
+    let rem = ver; for (let i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1f25);
+    const b = (ver << 12) | rem;
+    for (let i = 0; i < 18; i++) { const v = ((b >>> i) & 1) === 1, a = size - 11 + (i % 3), c = Math.floor(i / 3); setF(a, c, v); setF(c, a, v); }
+  }
+  let i = 0;
+  for (let right = size - 1; right >= 1; right -= 2) {
+    if (right === 6) right = 5;
+    for (let v = 0; v < size; v++) for (let j = 0; j < 2; j++) {
+      const x = right - j, up = ((right + 1) & 2) === 0, y = up ? size - 1 - v : v;
+      if (!fn[y][x] && i < all.length * 8) { mod[y][x] = ((all[i >>> 3] >>> (7 - (i & 7))) & 1) === 1; i++; }
+    }
+  }
+  const maskFn = [
+    (x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, (x) => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(x / 3) + Math.floor(y / 2)) % 2 === 0, (x, y) => ((x * y) % 2) + ((x * y) % 3) === 0,
+    (x, y) => (((x * y) % 2) + ((x * y) % 3)) % 2 === 0, (x, y) => (((x + y) % 2) + ((x * y) % 3)) % 2 === 0
+  ];
+  const applyMask = (m) => { for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!fn[y][x] && maskFn[m](x, y)) mod[y][x] = !mod[y][x]; };
+  const penalty = () => {
+    let p = 0, dark = 0;
+    for (let a = 0; a < size; a++) {
+      for (const get of [(k) => mod[a][k], (k) => mod[k][a]]) {
+        let run = 1;
+        for (let k = 1; k < size; k++) { if (get(k) === get(k - 1)) { run++; if (run === 5) p += 3; else if (run > 5) p++; } else run = 1; }
+      }
+    }
+    for (let y = 0; y < size - 1; y++) for (let x = 0; x < size - 1; x++) { const c = mod[y][x]; if (c === mod[y][x + 1] && c === mod[y + 1][x] && c === mod[y + 1][x + 1]) p += 3; }
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (mod[y][x]) dark++;
+    p += Math.floor(Math.abs(dark * 20 - size * size * 10) / (size * size)) * 10;
+    return p;
+  };
+  let best = 0, bestP = Infinity;
+  for (let m = 0; m < 8; m++) { applyMask(m); drawFormat(m); const p = penalty(); if (p < bestP) { bestP = p; best = m; } applyMask(m); }
+  applyMask(best); drawFormat(best);
+  return { size, modules: mod };
+}
+
+function toSvg(text, border = 2) {
+  const { size, modules } = encode(text);
+  const dim = size + border * 2;
+  let d = '';
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (modules[y][x]) d += `M${x + border},${y + border}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" width="220" height="220"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+window.VTQR = { toSvg, encode };
+
+</script>
+<script>
+/* VayTech Time — DEMO backend. Runs the app's API inside the browser on sample data.
+   The real app uses server.js; this file is only for the demo page. */
+(() => {
+  'use strict';
+  /* ---------------- time zone helpers ---------------- */
+const fmtCache = new Map();
+function tzFormatter(tz) {
+  if (!fmtCache.has(tz)) {
+    fmtCache.set(tz, new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }));
+  }
+  return fmtCache.get(tz);
+}
+function tzParts(ms, tz) {
+  const p = {};
+  for (const x of tzFormatter(tz).formatToParts(new Date(ms))) p[x.type] = x.value;
+  return { y: +p.year, m: +p.month, d: +p.day, h: +p.hour % 24, mi: +p.minute, s: +p.second };
+}
+function tzOffset(ms, tz) {
+  const p = tzParts(ms, tz);
+  return Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s) - Math.floor(ms / 1000) * 1000;
+}
+function zonedToUtc(y, m, d, h, mi, tz) {
+  const guess = Date.UTC(y, m - 1, d, h, mi);
+  const off = tzOffset(guess, tz);
+  let t = guess - off;
+  const off2 = tzOffset(t, tz);
+  if (off2 !== off) t = guess - off2;
+  return t;
+}
+const pad = (n) => String(n).padStart(2, '0');
+function ymdOf(ms, tz) { const p = tzParts(ms, tz); return `${p.y}-${pad(p.m)}-${pad(p.d)}`; }
+function parseYmd(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+  if (!m) return null;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const t = new Date(Date.UTC(y, mo - 1, d));
+  if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d) return null;
+  return { y, m: mo, d };
+}
+function addDays(ymd, n) {
+  const p = parseYmd(ymd);
+  const t = new Date(Date.UTC(p.y, p.m - 1, p.d + n));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
+function dowOf(ymd) { const p = parseYmd(ymd); return new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay(); }
+function midnightUtc(ymd, tz) { const p = parseYmd(ymd); return zonedToUtc(p.y, p.m, p.d, 0, 0, tz); }
+function weekStartOf(ymd, s) { return addDays(ymd, -((dowOf(ymd) - s.week_start_day + 7) % 7)); }
+function currentWeekStart(s) { return weekStartOf(ymdOf(Date.now(), s.timezone), s); }
+function payDateFor(weekStart, s) {
+  const end = addDays(weekStart, 6);
+  for (let i = 1; i <= 7; i++) { const d = addDays(end, i); if (dowOf(d) === s.payday_weekday) return d; }
+  return addDays(end, 1);
+}
+function parseLocalDateTime(str, tz) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(str || ''));
+  if (!m || !parseYmd(`${m[1]}-${m[2]}-${m[3]}`)) return null;
+  const h = +m[4], mi = +m[5];
+  if (h > 23 || mi > 59) return null;
+  return zonedToUtc(+m[1], +m[2], +m[3], h, mi, tz);
+}
+
+
+  const KEY = 'vt_demo_v3';
+  const round2 = (n) => Math.round(n * 100) / 100;
+  const DAY = 86400000, HOUR = 3600000;
+
+  /* ---------- state ---------- */
+  let D = null;
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch {} }
+  function load() { try { const s = localStorage.getItem(KEY); if (s) return JSON.parse(s); } catch {} return null; }
+  const nextId = () => ++D.seq;
+
+  function seed() {
+    const tz = 'America/Chicago';
+    D = {
+      seq: 100, session: null, ts: Date.now(),
+      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 1, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: 5, timeoff_notice_days: 14, max_shift_hours: 12 },
+      users: [], invites: [], entries: [], edits: [], requests: [], payments: [], notifications: []
+    };
+    const s = D.settings;
+    const mk = (name, role, rate, lead, phone) => { const u = { id: nextId(), name, role, hourly_rate: rate, lead_id: lead, phone, email: null, password: 'demo1234', active: 1, created_at: Date.now() - 60 * DAY }; D.users.push(u); return u; };
+    const owner = mk('Alvi Tovsultanov', 'owner', 0, null, '3125550001'); owner.email = 'owner@vaytech.demo';
+    const marcus = mk('Marcus Reyes', 'supervisor', 32, null, '3125550100');
+    const sarah = mk('Sarah Kim', 'supervisor', 30, null, '3125550110');
+    const techs = [
+      mk('Danny Cole', 'tech', 22.5, marcus.id, '3125550101'),
+      mk('Jose Martinez', 'tech', 26, marcus.id, '3125550102'),
+      mk('Kevin Brooks', 'tech', 20, marcus.id, '3125550103'),
+      mk('Luis Ortega', 'tech', 24, sarah.id, '3125550104'),
+      mk('Ahmed Saidov', 'tech', 21, sarah.id, '3125550105'),
+      mk('Tyler Grant', 'tech', 19, sarah.id, '3125550106')
+    ];
+    const workers = [marcus, sarah, ...techs];
+    const sites = [[41.8781, -87.6298], [41.9742, -87.9073], [41.7508, -87.7124], [42.0451, -87.6877], [41.8500, -88.3126]];
+    const today = ymdOf(Date.now(), tz);
+    const thisWeek = weekStartOf(today, s);
+    // deterministic pseudo-random
+    let r = 7; const rnd = () => { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+    const at = (ymd, h, m) => { const p = parseYmd(ymd); return zonedToUtc(p.y, p.m, p.d, h, m, tz); };
+    for (let w = 3; w >= 0; w--) {
+      const ws = addDays(thisWeek, -7 * w);
+      workers.forEach((u, ui) => {
+        for (let d = 0; d < 6; d++) {
+          const day = addDays(ws, d);
+          if (day >= today) continue;
+          if (d === 5 && rnd() < 0.6) continue; // most Saturdays off
+          if (rnd() < 0.06) continue; // occasional day off
+          const site = sites[(ui + d) % sites.length];
+          const inH = 6 + Math.floor(rnd() * 2), inM = Math.floor(rnd() * 4) * 15;
+          const len = 7.5 + rnd() * 3;
+          const cin = at(day, inH, inM), cout = cin + Math.round(len * 4) / 4 * HOUR;
+          D.entries.push({ id: nextId(), user_id: u.id, clock_in: cin, clock_out: cout, in_lat: site[0] + rnd() * 0.004, in_lng: site[1] + rnd() * 0.004, in_acc: 12, out_lat: site[0], out_lng: site[1], out_acc: 15, created_by: u.id, edited: 0 });
+        }
+      });
+    }
+    // two people on the clock right now
+    [techs[0], techs[3]].forEach((u, i) => { const site = sites[i]; D.entries.push({ id: nextId(), user_id: u.id, clock_in: Math.min(Date.now() - 5 * 60000, at(today, 7, i * 20)), clock_out: null, in_lat: site[0], in_lng: site[1], in_acc: 10, created_by: u.id, edited: 0 }); });
+    // weeks before last are already paid
+    for (let w = 2; w <= 3; w++) {
+      const ws = addDays(thisWeek, -7 * w);
+      for (const u of workers) {
+        const sum = weekSummary(u, ws, s);
+        if (sum.gross > 0) {
+          const paidAt = at(payDateFor(ws, s), 9, 30);
+          D.payments.push({ id: nextId(), user_id: u.id, week_start: ws, hours: sum.hours, ot_hours: 0, rate: u.hourly_rate, amount: sum.gross, paid_at: paidAt, paid_by: owner.id });
+          notifyAt(u.id, 'Payment sent', `Your pay of ${money(sum.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${sum.hours} hrs) has been sent. You will receive it shortly.`, paidAt);
+        }
+      }
+    }
+    // requests
+    const req = (u, type, a, b, reason, status, by, note) => { const q = { id: nextId(), user_id: u.id, type, start_date: a, end_date: b, reason, status: status || 'pending', decided_by: by ? by.id : null, decided_at: by ? Date.now() - 2 * DAY : null, decision_note: note || '', created_at: Date.now() - (status ? 4 : 0.2) * DAY }; D.requests.push(q); return q; };
+    req(techs[1], 'time_off', addDays(today, 20), addDays(today, 22), 'Family wedding in Houston');
+    req(techs[2], 'sick', today, today, 'Fever, staying home');
+    // Luis forgot to clock out yesterday: the app cut it at 12 hours
+    { const y = addDays(today, -1); D.entries = D.entries.filter((e) => !(e.user_id === techs[3].id && ymdOf(e.clock_in, tz) === y));
+      const cin = at(y, 7, 0); D.entries.push({ id: nextId(), user_id: techs[3].id, clock_in: cin, clock_out: cin + 12 * HOUR, in_lat: sites[3][0], in_lng: sites[3][1], in_acc: 10, created_by: techs[3].id, edited: 0, auto_capped: 1 });
+      D.edits.push({ id: nextId(), entry_id: D.seq, user_id: techs[3].id, editor_id: techs[3].id, action: 'auto', reason: 'Never clocked out. App ended the shift at 12 hours.', at: cin + 12 * HOUR });
+      notifyAt(techs[3].id, 'Shift ended automatically', `You were on the clock 12 hours (since ${niceTime(cin, tz)}), so the app ended your shift at ${niceTime(cin + 12 * HOUR, tz)}. If you left earlier, send a Fix my hours request.`, cin + 12 * HOUR);
+      notifyAt(sarah.id, "Luis Ortega's shift ended automatically", `Luis Ortega clocked in ${niceTime(cin, tz)} and never clocked out. The app counted 12 hours. Check with them and fix it if needed.`, cin + 12 * HOUR); }
+    req(techs[3], 'correction', addDays(today, -1), addDays(today, -1), 'Forgot to clock out yesterday. App counted 12 hours but I left the job at 4:00 PM');
+    req(techs[0], 'time_off', addDays(today, 30), addDays(today, 30), 'Doctor appointment', 'approved', marcus, 'No problem');
+    req(techs[4], 'time_off', addDays(today, 16), addDays(today, 19), 'Trip', 'denied', sarah, 'Big install that week, can we move it?');
+    notifyAt(techs[0].id, 'Time off approved', `Marcus Reyes approved your request for ${niceDate(addDays(today, 30))}. Note: No problem`, Date.now() - 2 * DAY);
+    notifyAt(marcus.id, 'New time off request', `Jose Martinez: ${niceDate(addDays(today, 20))} – ${niceDate(addDays(today, 22))} — Family wedding in Houston`, Date.now() - 0.2 * DAY);
+    notifyAt(marcus.id, 'New sick leave request', `Kevin Brooks: ${niceDate(today)} — Fever, staying home`, Date.now() - 0.1 * DAY);
+    notifyAt(sarah.id, 'New hours fix request', `Luis Ortega: ${niceDate(addDays(today, -1))} — Forgot to clock out yesterday, left the job at 4:00 PM`, Date.now() - 0.1 * DAY);
+    D.session = owner.id;
+    save();
+  }
+
+  /* ---------- helpers mirroring server.js ---------- */
+  const S = () => D.settings;
+  const userById = (id) => D.users.find((u) => u.id === Number(id));
+  function weekSummary(user, weekStart, s, now = Date.now()) {
+    const from = midnightUtc(weekStart, s.timezone), to = midnightUtc(addDays(weekStart, 7), s.timezone);
+    const entries = D.entries.filter((e) => e.user_id === user.id && e.clock_in < to && (e.clock_out ?? now) > from).sort((a, b) => a.clock_in - b.clock_in);
+    let ms = 0; const days = {};
+    for (let i = 0; i < 7; i++) days[addDays(weekStart, i)] = 0;
+    for (const e of entries) {
+      const a = Math.max(e.clock_in, from), b = Math.min(e.clock_out ?? now, to);
+      if (b > a) { ms += b - a; const day = ymdOf(a, s.timezone); if (day in days) days[day] += (b - a) / HOUR; }
+    }
+    const hours = round2(ms / HOUR);
+    const regular = s.ot_enabled ? round2(Math.min(hours, s.ot_threshold)) : hours;
+    const overtime = s.ot_enabled ? round2(Math.max(0, hours - s.ot_threshold)) : 0;
+    const rate = user.hourly_rate || 0;
+    const gross = round2(regular * rate + overtime * rate * s.ot_multiplier);
+    const p = D.payments.find((x) => x.user_id === user.id && x.week_start === weekStart);
+    const payment = p ? { ...p, paid_by_name: (userById(p.paid_by) || {}).name } : null;
+    return { week_start: weekStart, week_end: addDays(weekStart, 6), pay_date: payDateFor(weekStart, s), hours, regular, overtime, rate, gross, days: Object.entries(days).map(([date, h]) => ({ date, hours: round2(h) })), open: entries.some((e) => !e.clock_out), entries: entries.map((e) => ({ ...e })), payment };
+  }
+  function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function niceDate(ymd) { const p = parseYmd(ymd); return new Date(Date.UTC(p.y, p.m - 1, p.d)).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }); }
+  function niceTime(ms, tz) { return new Date(ms).toLocaleString('en-US', { timeZone: tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  function notifyAt(userId, title, body, at) { D.notifications.push({ id: nextId(), user_id: userId, title, body: body || '', created_at: at || Date.now(), read_at: null }); }
+  const notify = (u, t, b) => notifyAt(u, t, b, Date.now());
+  function approversFor(user) {
+    if (user.role === 'supervisor') return D.users.filter((u) => u.role === 'owner' && u.active).map((u) => u.id);
+    if (user.lead_id) { const l = userById(user.lead_id); if (l && l.active) return [l.id]; }
+    return D.users.filter((u) => (u.role === 'owner' || u.role === 'supervisor') && u.active).map((u) => u.id);
+  }
+  function publicUser(u, viewer) {
+    if (!u) return null;
+    const out = { id: u.id, name: u.name, role: u.role, phone: u.phone, email: u.email, lead_id: u.lead_id, active: !!u.active };
+    if (viewer && (viewer.role === 'owner' || viewer.id === u.id)) out.hourly_rate = u.hourly_rate;
+    return out;
+  }
+  class HttpError extends Error { constructor(st, m) { super(m); this.status = st; } }
+  const fail = (st, m) => { throw new HttpError(st, m); };
+  const str = (v, max = 500) => String(v ?? '').trim().slice(0, max);
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+  const normPhone = (p) => { let d = String(p || '').replace(/\D/g, ''); if (d.length === 11 && d.startsWith('1')) d = d.slice(1); return d || null; };
+  const normEmail = (e) => { const v = String(e || '').trim().toLowerCase(); return v || null; };
+  function canManage(viewer, t) { if (!t) return false; if (viewer.role === 'owner') return t.role !== 'owner'; if (viewer.role === 'supervisor') return t.role === 'tech'; return false; }
+  const openEntry = (uid) => D.entries.filter((e) => e.user_id === uid && !e.clock_out).sort((a, b) => b.clock_in - a.clock_in)[0];
+  const TYPE_LABEL = { time_off: 'Time off', sick: 'Sick leave', correction: 'Hours fix' };
+  const withLabel = (r) => ({ ...r, type_label: TYPE_LABEL[r.type], decided_by_name: r.decided_by ? (userById(r.decided_by) || {}).name : null, user_name: (userById(r.user_id) || {}).name, lead_id: (userById(r.user_id) || {}).lead_id });
+  const token = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join('');
+  const inviteUrl = (t) => 'https://time.vaytech.org/join/' + t; // what a real invite link looks like
+  function validLead(id) { if (!id) return null; const l = userById(id); if (!l || (l.role !== 'owner' && l.role !== 'supervisor')) fail(400, 'Pick a valid team lead'); return l.id; }
+
+  /* ---------- routes ---------- */
+  const routes = [];
+  const route = (method, pattern, opts, fn) => { const keys = []; const re = new RegExp('^' + pattern.replace(/:(\w+)/g, (_, k) => { keys.push(k); return '([^/]+)'; }) + '$'); routes.push({ method, re, keys, opts, fn }); };
+
+  route('GET', '/api/bootstrap', {}, ({ user }) => ({ setupNeeded: false, user: publicUser(user, user), settings: { company_name: S().company_name, timezone: S().timezone, timeoff_notice_days: S().timeoff_notice_days } }));
+  route('POST', '/api/login', {}, ({ body }) => {
+    const login = str(body.login, 120);
+    const u = login.includes('@') ? D.users.find((x) => x.email === normEmail(login)) : D.users.find((x) => x.phone === normPhone(login));
+    if (!u || u.password !== String(body.password || '')) fail(401, 'Wrong phone/email or password');
+    if (!u.active) fail(403, 'This account is turned off. Talk to your supervisor.');
+    D.session = u.id; return { ok: true };
+  });
+  route('POST', '/api/logout', {}, () => { D.session = null; return { ok: true }; });
+  const loadInvite = (t) => { const i = D.invites.find((x) => x.token === t); if (!i || i.revoked || i.used_at) fail(404, 'This link has already been used or was cancelled. Ask for a new one.'); if (i.expires_at < Date.now()) fail(410, 'This link has expired.'); return i; };
+  route('GET', '/api/invite/:t', {}, ({ params }) => { const i = loadInvite(params.t); const u = i.user_id ? userById(i.user_id) : null; return { kind: i.kind, name: u ? u.name : i.name, role: i.role, company: S().company_name }; });
+  route('POST', '/api/invite/:t/accept', {}, ({ params, body }) => {
+    const i = loadInvite(params.t);
+    const pw = String(body.password || '');
+    if (pw.length < 8) fail(400, 'Password must be at least 8 characters');
+    if (i.kind === 'reset') { userById(i.user_id).password = pw; i.used_at = Date.now(); D.session = i.user_id; return { ok: true }; }
+    const phone = normPhone(body.phone), email = normEmail(body.email), name = str(body.name, 80) || i.name;
+    if (!phone || phone.length < 10) fail(400, 'Enter a full phone number');
+    if (D.users.some((u) => u.phone === phone)) fail(400, 'That phone number already has an account. Sign in instead.');
+    if (email && D.users.some((u) => u.email === email)) fail(400, 'That email already has an account.');
+    const u = { id: nextId(), name, phone, email, password: pw, role: i.role, hourly_rate: i.hourly_rate, lead_id: i.lead_id, active: 1, created_at: Date.now() };
+    D.users.push(u); i.used_at = Date.now(); i.user_id = u.id;
+    notify(i.created_by, `${name} joined`, `${name} created their account and can now clock in.`);
+    D.session = u.id; return { ok: true };
+  });
+
+  route('GET', '/api/me/dashboard', { auth: true }, ({ user }) => {
+    const s = S(), ws = currentWeekStart(s), week = weekSummary(user, ws, s), history = [];
+    for (let i = 1; i <= 8; i++) { const w = weekSummary(user, addDays(ws, -7 * i), s); if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at } }); }
+    return { open: openEntry(user.id) || null, week, history, settings: { ot_enabled: s.ot_enabled, ot_threshold: s.ot_threshold, ot_multiplier: s.ot_multiplier, max_shift_hours: s.max_shift_hours } };
+  });
+  route('GET', '/api/me/week', { auth: true }, ({ user, query }) => { const s = S(); return weekSummary(user, parseYmd(query.start) ? weekStartOf(query.start, s) : currentWeekStart(s), s); });
+  const loc = (b) => { const lat = num(b.lat), lng = num(b.lng); return lat === null || lng === null ? [null, null, null] : [lat, lng, num(b.acc)]; };
+  route('POST', '/api/clock/in', { auth: true }, ({ user, body }) => {
+    if (user.role === 'owner') fail(400, 'The owner account does not clock in. Switch to a tech or lead at the top to try clocking in.');
+    if (openEntry(user.id)) fail(400, 'You are already clocked in');
+    const [lat, lng, acc] = loc(body);
+    D.entries.push({ id: nextId(), user_id: user.id, clock_in: Date.now(), clock_out: null, in_lat: lat, in_lng: lng, in_acc: acc, created_by: user.id, edited: 0 }); return { ok: true };
+  });
+  function capLongShifts() {
+    const s = S(); if (!(s.max_shift_hours > 0)) return;
+    const limit = s.max_shift_hours * HOUR;
+    const due = D.entries.filter((x) => !x.clock_out && x.clock_in <= Date.now() - limit);
+    for (const e of due) {
+      const u = userById(e.user_id), end = e.clock_in + limit;
+      Object.assign(e, { clock_out: end, auto_capped: 1 });
+      recordEdit(e.id, u.id, u.id, 'auto', { clock_in: e.clock_in, clock_out: null }, { clock_in: e.clock_in, clock_out: end }, `Never clocked out. App ended the shift at ${s.max_shift_hours} hours.`);
+      notify(u.id, 'Shift ended automatically', `You were on the clock ${s.max_shift_hours} hours (since ${niceTime(e.clock_in, s.timezone)}), so the app ended your shift at ${niceTime(end, s.timezone)}. If you left earlier, send a Fix my hours request.`);
+      for (const id of approversFor(u)) notify(id, `${u.name}'s shift ended automatically`, `${u.name} clocked in ${niceTime(e.clock_in, s.timezone)} and never clocked out. The app counted ${s.max_shift_hours} hours. Check with them and fix it if needed.`);
+    }  if (due.length) save();
+  }
+  route('POST', '/api/clock/out', { auth: true }, ({ user, body }) => {
+    const e = openEntry(user.id);
+    if (!e) { const last = D.entries.filter((x) => x.user_id === user.id).sort((a, b) => b.clock_in - a.clock_in)[0]; if (last && last.auto_capped && Date.now() - last.clock_out < 36 * HOUR) return { ok: true, capped: true, hours: S().max_shift_hours }; fail(400, 'You are not clocked in'); }
+    const [lat, lng, acc] = loc(body); Object.assign(e, { clock_out: Math.max(Date.now(), e.clock_in + 1000), out_lat: lat, out_lng: lng, out_acc: acc }); return { ok: true };
+  });
+  const myNotes = (u) => D.notifications.filter((n) => n.user_id === u.id).sort((a, b) => b.created_at - a.created_at);
+  route('GET', '/api/notifications', { auth: true }, ({ user }) => ({ items: myNotes(user).slice(0, 50), unread: myNotes(user).filter((n) => !n.read_at).length }));
+  route('GET', '/api/notifications/count', { auth: true }, ({ user }) => ({ unread: myNotes(user).filter((n) => !n.read_at).length }));
+  route('POST', '/api/notifications/read', { auth: true }, ({ user }) => { myNotes(user).forEach((n) => { if (!n.read_at) n.read_at = Date.now(); }); return { ok: true }; });
+
+  route('GET', '/api/requests', { auth: true }, ({ user }) => ({ items: D.requests.filter((r) => r.user_id === user.id).sort((a, b) => b.created_at - a.created_at).map(withLabel) }));
+  route('POST', '/api/requests', { auth: true }, ({ user, body }) => {
+    if (user.role === 'owner') fail(400, 'The owner account does not send requests. Switch to a tech at the top to try it.');
+    const s = S(), type = String(body.type);
+    if (!TYPE_LABEL[type]) fail(400, 'Pick a request type');
+    const start = String(body.start_date || ''), end = String(body.end_date || body.start_date || '');
+    if (!parseYmd(start) || !parseYmd(end)) fail(400, 'Pick the date(s)');
+    if (end < start) fail(400, 'End date is before start date');
+    const today = ymdOf(Date.now(), s.timezone), reason = str(body.reason, 1000);
+    if (type === 'time_off') { const earliest = addDays(today, s.timeoff_notice_days); if (start < earliest) fail(400, `Time off must be requested at least ${s.timeoff_notice_days} days ahead. Earliest date: ${niceDate(earliest)}.`); }
+    if (type === 'correction') { if (start > today) fail(400, 'Pick the day that needs fixing'); if (!reason) fail(400, 'Tell your lead what needs fixing'); }
+    const r = { id: nextId(), user_id: user.id, type, start_date: start, end_date: end, reason, status: 'pending', decided_by: null, decided_at: null, decision_note: '', created_at: Date.now() };
+    D.requests.push(r);
+    const range = start === end ? niceDate(start) : `${niceDate(start)} – ${niceDate(end)}`;
+    for (const id of approversFor(user)) notify(id, `New ${TYPE_LABEL[type].toLowerCase()} request`, `${user.name}: ${range}${reason ? ' — ' + reason : ''}`);
+    return { ok: true, id: r.id };
+  });
+  route('POST', '/api/requests/:id/cancel', { auth: true }, ({ user, params }) => { const r = D.requests.find((x) => x.id === Number(params.id) && x.user_id === user.id); if (!r) fail(404, 'Not found'); if (r.status !== 'pending') fail(400, 'Only pending requests can be cancelled'); r.status = 'cancelled'; return { ok: true }; });
+
+  const teamOf = (v) => D.users.filter((u) => (v.role === 'owner' ? u.role !== 'owner' : u.role === 'tech')).sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name));
+  route('GET', '/api/team', { auth: true, roles: ['owner', 'supervisor'] }, ({ user }) => {
+    const s = S(), ws = currentWeekStart(s);
+    const people = teamOf(user).map((u) => { const w = weekSummary(u, ws, s); const o = { ...publicUser(u, user), week_hours: w.hours, week_overtime: w.overtime, open: openEntry(u.id) || null }; if (user.role === 'owner') o.week_gross = w.gross; return o; });
+    return { people, leads: D.users.filter((u) => u.role !== 'tech' && u.active).map((u) => ({ id: u.id, name: u.name })), me: user.id };
+  });
+  const getManaged = (v, id) => { const t = userById(id); if (!canManage(v, t)) fail(403, 'Not allowed'); return t; };
+  route('GET', '/api/team/:id/week', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, params, query }) => {
+    const s = S(), t = getManaged(user, params.id), start = parseYmd(query.start) ? weekStartOf(query.start, s) : currentWeekStart(s);
+    const w = weekSummary(t, start, s);
+    const edits = D.edits.filter((e) => e.user_id === t.id).sort((a, b) => b.at - a.at).slice(0, 50).map((e) => ({ ...e, editor_name: (userById(e.editor_id) || {}).name }));
+    if (user.role !== 'owner') { delete w.rate; delete w.gross; delete w.payment; }
+    return { person: publicUser(t, user), week: w, edits };
+  });
+  function validateTimes(body, s) {
+    const cin = parseLocalDateTime(body.clock_in, s.timezone); if (!cin) fail(400, 'Enter a clock-in time');
+    let cout = null;
+    if (body.clock_out) { cout = parseLocalDateTime(body.clock_out, s.timezone); if (!cout) fail(400, 'Clock-out time is not valid'); if (cout <= cin) fail(400, 'Clock-out must be after clock-in'); if (cout - cin > 24 * HOUR) fail(400, 'A single shift cannot be longer than 24 hours'); }
+    if (cin > Date.now() + 300000) fail(400, 'Clock-in cannot be in the future');
+    if (cout && cout > Date.now() + 300000) fail(400, 'Clock-out cannot be in the future');
+    return [cin, cout];
+  }
+  function checkOverlap(uid, cin, cout, except) {
+    const end = cout ?? Date.now();
+    if (D.entries.some((e) => e.user_id === uid && e.id !== except && e.clock_in < end && (e.clock_out ?? Date.now()) > cin)) fail(400, 'This overlaps another shift for this person. Fix that shift first.');
+    if (!cout && D.entries.some((e) => e.user_id === uid && e.id !== except && !e.clock_out)) fail(400, 'This person already has an open shift');
+  }
+  const paidWeek = (t, ms, s) => { const ws = weekStartOf(ymdOf(ms, s.timezone), s); return D.payments.some((p) => p.user_id === t.id && p.week_start === ws) ? ws : null; };
+  const recordEdit = (eid, tid, ed, action, before, after, reason) => D.edits.push({ id: nextId(), entry_id: eid, user_id: tid, editor_id: ed, action, before_json: JSON.stringify(before), after_json: JSON.stringify(after), reason, at: Date.now() });
+  route('POST', '/api/team/:id/entries', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, params, body }) => {
+    const s = S(), t = getManaged(user, params.id), [cin, cout] = validateTimes(body, s), reason = str(body.reason);
+    if (!reason) fail(400, 'Add a reason (for example: forgot to clock in)');
+    checkOverlap(t.id, cin, cout, 0);
+    const e = { id: nextId(), user_id: t.id, clock_in: cin, clock_out: cout, created_by: user.id, edited: 1, in_lat: null, in_lng: null };
+    D.entries.push(e); recordEdit(e.id, t.id, user.id, 'add', null, { clock_in: cin, clock_out: cout }, reason);
+    notify(t.id, 'Your hours were updated', `${user.name} added a shift: ${niceTime(cin, s.timezone)} – ${cout ? niceTime(cout, s.timezone) : 'still on the clock'}. Reason: ${reason}`);
+    return { ok: true, paid_week: paidWeek(t, cin, s) };
+  });
+  const loadEntry = (user, id) => { const e = D.entries.find((x) => x.id === Number(id)); if (!e) fail(404, 'Shift not found'); return [e, getManaged(user, e.user_id)]; };
+  route('PUT', '/api/entries/:id', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, params, body }) => {
+    const s = S(), [e, t] = loadEntry(user, params.id), [cin, cout] = validateTimes(body, s), reason = str(body.reason);
+    if (!reason) fail(400, 'Add a reason for the change');
+    checkOverlap(t.id, cin, cout, e.id);
+    const before = { clock_in: e.clock_in, clock_out: e.clock_out };
+    Object.assign(e, { clock_in: cin, clock_out: cout, edited: 1 });
+    recordEdit(e.id, t.id, user.id, 'edit', before, { clock_in: cin, clock_out: cout }, reason);
+    notify(t.id, 'Your hours were updated', `${user.name} changed your shift to ${niceTime(cin, s.timezone)} – ${cout ? niceTime(cout, s.timezone) : 'still on the clock'}. Reason: ${reason}`);
+    return { ok: true, paid_week: paidWeek(t, cin, s) || paidWeek(t, before.clock_in, s) };
+  });
+  route('DELETE', '/api/entries/:id', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, params, body }) => {
+    const s = S(), [e, t] = loadEntry(user, params.id), reason = str(body.reason);
+    if (!reason) fail(400, 'Add a reason for removing this shift');
+    D.entries = D.entries.filter((x) => x.id !== e.id);
+    recordEdit(e.id, t.id, user.id, 'delete', { clock_in: e.clock_in, clock_out: e.clock_out }, null, reason);
+    notify(t.id, 'Your hours were updated', `${user.name} removed your shift from ${niceTime(e.clock_in, s.timezone)}. Reason: ${reason}`);
+    return { ok: true, paid_week: paidWeek(t, e.clock_in, s) };
+  });
+  route('GET', '/api/team/requests', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, query }) => {
+    const status = ['pending', 'approved', 'denied', 'cancelled'].includes(query.status) ? query.status : 'pending';
+    const items = D.requests.filter((r) => { const u = userById(r.user_id); return r.status === status && u && (user.role === 'owner' ? u.role !== 'owner' : u.role === 'tech'); })
+      .sort((a, b) => status === 'pending' ? a.start_date.localeCompare(b.start_date) : (b.decided_at - a.decided_at)).map(withLabel);
+    return { items };
+  });
+  route('POST', '/api/team/requests/:id/decide', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, params, body }) => {
+    const r = D.requests.find((x) => x.id === Number(params.id)); if (!r) fail(404, 'Request not found');
+    const t = getManaged(user, r.user_id);
+    if (r.status !== 'pending') fail(400, 'This request was already handled');
+    const status = body.status === 'approved' ? 'approved' : body.status === 'denied' ? 'denied' : fail(400, 'Approve or deny');
+    const note = str(body.note);
+    Object.assign(r, { status, decided_by: user.id, decided_at: Date.now(), decision_note: note });
+    const range = r.start_date === r.end_date ? niceDate(r.start_date) : `${niceDate(r.start_date)} – ${niceDate(r.end_date)}`;
+    const word = r.type === 'correction' ? (status === 'approved' ? 'fixed' : 'not changed') : status;
+    notify(t.id, `${TYPE_LABEL[r.type]} ${word}`, `${user.name} ${status === 'approved' ? (r.type === 'correction' ? 'fixed your hours for' : 'approved your request for') : 'denied your request for'} ${range}.${note ? ' Note: ' + note : ''}`);
+    return { ok: true };
+  });
+
+  route('GET', '/api/admin/people', { auth: true, roles: ['owner'] }, ({ user }) => {
+    const people = D.users.filter((u) => u.role !== 'owner').sort((a, b) => (b.active - a.active) || a.name.localeCompare(b.name)).map((u) => publicUser(u, user));
+    const invites = D.invites.filter((i) => i.kind === 'invite' && !i.used_at && !i.revoked && i.expires_at > Date.now()).sort((a, b) => b.created_at - a.created_at)
+      .map((i) => ({ token_hint: i.token, name: i.name, role: i.role, hourly_rate: i.hourly_rate, lead_id: i.lead_id, created_at: i.created_at, expires_at: i.expires_at }));
+    return { people, invites, leads: D.users.filter((u) => u.role !== 'tech' && u.active).map((u) => ({ id: u.id, name: u.name, role: u.role })) };
+  });
+  route('POST', '/api/admin/invites', { auth: true, roles: ['owner'] }, ({ user, body }) => {
+    const name = str(body.name, 80); if (!name) fail(400, 'Enter their name');
+    const rate = num(body.hourly_rate); if (rate === null || rate < 0 || rate > 1000) fail(400, 'Enter an hourly rate');
+    const i = { token: token(), kind: 'invite', name, role: body.role === 'supervisor' ? 'supervisor' : 'tech', hourly_rate: rate, lead_id: validLead(body.lead_id), created_by: user.id, created_at: Date.now(), expires_at: Date.now() + 14 * DAY };
+    D.invites.push(i); D.lastInvite = i.token;
+    const url = inviteUrl(i.token);
+    return { url, qr_svg: window.VTQR.toSvg(url), expires_at: i.expires_at };
+  });
+  route('GET', '/api/admin/invites/:t/link', { auth: true, roles: ['owner'] }, ({ params }) => { const i = D.invites.find((x) => x.token === params.t); if (!i) fail(404, 'Invite not found'); const url = inviteUrl(i.token); return { url, qr_svg: window.VTQR.toSvg(url), name: i.name, expires_at: i.expires_at }; });
+  route('DELETE', '/api/admin/invites/:t', { auth: true, roles: ['owner'] }, ({ params }) => { const i = D.invites.find((x) => x.token === params.t); if (i) i.revoked = 1; return { ok: true }; });
+  route('PUT', '/api/admin/people/:id', { auth: true, roles: ['owner'] }, ({ params, body }) => {
+    const t = userById(params.id); if (!t || t.role === 'owner') fail(404, 'Not found');
+    const rate = num(body.hourly_rate); if (rate === null || rate < 0 || rate > 1000) fail(400, 'Enter an hourly rate');
+    const lead = validLead(body.lead_id); if (lead === t.id) fail(400, 'A person cannot be their own lead');
+    const phone = body.phone !== undefined ? normPhone(body.phone) : t.phone, email = body.email !== undefined ? normEmail(body.email) : t.email;
+    if (!phone && !email) fail(400, 'Keep a phone or email so they can sign in');
+    if (phone && D.users.some((u) => u.phone === phone && u.id !== t.id)) fail(400, 'Another account uses that phone');
+    const wasLead = t.role === 'supervisor';
+    Object.assign(t, { name: str(body.name, 80) || t.name, role: body.role === 'supervisor' ? 'supervisor' : 'tech', hourly_rate: rate, lead_id: lead, phone, email, active: body.active === false ? 0 : 1 });
+    if (wasLead && t.role === 'tech') D.users.forEach((u) => { if (u.lead_id === t.id) u.lead_id = null; });
+    if (!t.active && D.session === t.id) D.session = null;
+    return { ok: true };
+  });
+  route('POST', '/api/admin/people/:id/reset', { auth: true, roles: ['owner'] }, ({ user, params }) => {
+    const t = userById(params.id); if (!t || t.role === 'owner') fail(404, 'Not found');
+    const i = { token: token(), kind: 'reset', user_id: t.id, created_by: user.id, created_at: Date.now(), expires_at: Date.now() + 2 * DAY };
+    D.invites.push(i); const url = inviteUrl(i.token);
+    return { url, qr_svg: window.VTQR.toSvg(url), name: t.name };
+  });
+  function payrollRows(ws, s) {
+    const rows = [];
+    for (const u of D.users.filter((x) => x.role !== 'owner').sort((a, b) => a.name.localeCompare(b.name))) {
+      const w = weekSummary(u, ws, s);
+      if (!u.active && w.hours === 0 && !w.payment) continue;
+      if (w.hours === 0 && !w.payment) { rows.push({ user_id: u.id, name: u.name, idle: true }); continue; }
+      rows.push({ user_id: u.id, name: u.name, role: u.role, rate: u.hourly_rate, hours: w.hours, regular: w.regular, overtime: w.overtime, gross: w.gross, open: w.open,
+        payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name }, changed: !!(w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01) });
+    }
+    return rows;
+  }
+  route('GET', '/api/admin/payroll', { auth: true, roles: ['owner'] }, ({ query }) => {
+    const s = S(), ws = parseYmd(query.week) ? weekStartOf(query.week, s) : addDays(currentWeekStart(s), -7);
+    const rows = payrollRows(ws, s), a = rows.filter((r) => !r.idle);
+    return { week_start: ws, week_end: addDays(ws, 6), pay_date: payDateFor(ws, s), current_week: currentWeekStart(s), is_current: ws === currentWeekStart(s), rows,
+      totals: { gross: round2(a.reduce((x, r) => x + r.gross, 0)), paid: round2(a.reduce((x, r) => x + (r.payment ? r.payment.amount : 0), 0)), unpaid: round2(a.filter((r) => !r.payment).reduce((x, r) => x + r.gross, 0)), hours: round2(a.reduce((x, r) => x + r.hours, 0)), people: a.length, paid_count: a.filter((r) => r.payment).length } };
+  });
+  route('POST', '/api/admin/payroll/mark', { auth: true, roles: ['owner'] }, ({ user, body }) => {
+    const s = S(); if (!parseYmd(body.week_start)) fail(400, 'Bad week');
+    const ws = weekStartOf(body.week_start, s), t = userById(body.user_id); if (!t || t.role === 'owner') fail(404, 'Person not found');
+    const w = weekSummary(t, ws, s);
+    if (w.gross <= 0) fail(400, 'Nothing to pay for this week');
+    if (w.open) fail(400, `${t.name} is still clocked in for this week. Clock them out first.`);
+    if (body.expected_amount !== undefined && Math.abs(Number(body.expected_amount) - w.gross) >= 0.01) fail(409, 'Hours changed while you were looking. Refresh and check again.');
+    if (D.payments.some((p) => p.user_id === t.id && p.week_start === ws)) fail(409, `${t.name} is already marked paid for this week.`);
+    D.payments.push({ id: nextId(), user_id: t.id, week_start: ws, hours: w.hours, ot_hours: w.overtime, rate: t.hourly_rate, amount: w.gross, paid_at: Date.now(), paid_by: user.id });
+    notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. You will receive it shortly.`);
+    return { ok: true };
+  });
+  route('POST', '/api/admin/payroll/unmark', { auth: true, roles: ['owner'] }, ({ body }) => {
+    const ws = weekStartOf(body.week_start, S()), before = D.payments.length;
+    D.payments = D.payments.filter((p) => !(p.user_id === Number(body.user_id) && p.week_start === ws));
+    if (D.payments.length === before) fail(404, 'No payment to undo'); return { ok: true };
+  });
+  route('GET', '/api/admin/settings', { auth: true, roles: ['owner'] }, () => ({ ...S() }));
+  route('PUT', '/api/admin/settings', { auth: true, roles: ['owner'] }, ({ body }) => {
+    const s = S(), n = { ...s };
+    if (body.company_name !== undefined) n.company_name = str(body.company_name, 60) || s.company_name;
+    if (body.timezone !== undefined) { try { new Intl.DateTimeFormat('en-US', { timeZone: String(body.timezone) }); n.timezone = String(body.timezone); } catch { fail(400, 'Unknown time zone'); } }
+    const intIn = (v, lo, hi, l) => { const x = Number(v); if (!Number.isInteger(x) || x < lo || x > hi) fail(400, `${l} is not valid`); return x; };
+    if (body.week_start_day !== undefined) n.week_start_day = intIn(body.week_start_day, 0, 6, 'Week start day');
+    if (body.payday_weekday !== undefined) n.payday_weekday = intIn(body.payday_weekday, 0, 6, 'Payday');
+    if (body.max_shift_hours !== undefined) { const x = Number(body.max_shift_hours); if (!(x >= 0 && x <= 24)) fail(400, 'Max shift length must be 0–24 hours'); n.max_shift_hours = x; }
+    if (body.timeoff_notice_days !== undefined) n.timeoff_notice_days = intIn(body.timeoff_notice_days, 0, 90, 'Notice days');
+    if (body.ot_enabled !== undefined) n.ot_enabled = body.ot_enabled === true || body.ot_enabled === 'on' || body.ot_enabled === '1';
+    if (body.ot_threshold !== undefined) { const x = Number(body.ot_threshold); if (!(x > 0 && x <= 168)) fail(400, 'Overtime hours is not valid'); n.ot_threshold = x; }
+    if (body.ot_multiplier !== undefined) { const x = Number(body.ot_multiplier); if (!(x >= 1 && x <= 3)) fail(400, 'Overtime rate is not valid'); n.ot_multiplier = x; }
+    D.settings = n; return { ...n };
+  });
+  route('POST', '/api/me/password', { auth: true }, ({ user, body }) => { if (user.password !== String(body.current || '')) fail(400, 'Current password is wrong (demo passwords are demo1234)'); if (String(body.next || '').length < 8) fail(400, 'New password must be at least 8 characters'); user.password = body.next; return { ok: true }; });
+
+  function handle(method, url, bodyText) {
+    const u = new URL(url, 'http://demo');
+    const r = routes.find((x) => x.method === method && x.re.test(u.pathname));
+    if (!r) return [404, { error: 'Not found' }];
+    try {
+      if (D.seq > 0) { capLongShifts(); }
+      const m = r.re.exec(u.pathname), params = {};
+      r.keys.forEach((k, i) => { params[k] = decodeURIComponent(m[i + 1]); });
+      const user = D.session ? D.users.find((x) => x.id === D.session && x.active) : null;
+      if (r.opts.auth) { if (!user) fail(401, 'Please sign in'); if (r.opts.roles && !r.opts.roles.includes(user.role)) fail(403, 'Not allowed'); }
+      const body = bodyText ? JSON.parse(bodyText) : {};
+      const out = r.fn({ user, params, body, query: Object.fromEntries(u.searchParams) });
+      if (method !== 'GET') save();
+      return [200, out];
+    } catch (e) {
+      if (e instanceof HttpError) return [e.status, { error: e.message }];
+      console.error(e); return [500, { error: 'Something went wrong' }];
+    }
+  }
+
+  /* ---------- wire up ---------- */
+  D = load() || (seed(), D);
+  const realFetch = window.fetch.bind(window);
+  window.fetch = async (url, opts = {}) => {
+    const s = typeof url === 'string' ? url : url.url;
+    if (!s.startsWith('/api/')) return realFetch(url, opts);
+    await new Promise((r) => setTimeout(r, 120));
+    const [status, data] = handle((opts.method || 'GET').toUpperCase(), s, opts.body);
+    return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+  };
+  window.VT_DEMO = {
+    users: () => D.users.filter((u) => u.active).map((u) => ({ id: u.id, name: u.name, role: u.role })),
+    current: () => D.session,
+    switchTo(id) { D.session = Number(id); save(); },
+    reset() { try { localStorage.removeItem(KEY); } catch {} seed(); },
+    lastInvite: () => D.lastInvite && D.invites.some((i) => i.token === D.lastInvite && !i.used_at && !i.revoked) ? D.lastInvite : null,
+    csv(week) {
+      const s = S(), ws = parseYmd(week) ? weekStartOf(week, s) : addDays(currentWeekStart(s), -7);
+      const lines = ['Name,Role,Week start,Week end,Hours,Rate,Gross pay,Paid,Paid amount'];
+      for (const r of payrollRows(ws, s).filter((x) => !x.idle)) lines.push([`"${r.name}"`, r.role, ws, addDays(ws, 6), r.hours, r.rate, r.gross, r.payment ? 'yes' : 'no', r.payment ? r.payment.amount : ''].join(','));
+      return { name: `payroll-${ws}.csv`, text: lines.join('\n') + '\n' };
+    }
+  };
+})();
+
+</script>
+<script>
+'use strict';
+/* VayTech Time — front end (no build step) */
+(() => {
+  const $app = document.getElementById('app');
+  const $sheet = document.getElementById('sheet-root');
+  const S = { boot: null, user: null, tz: 'America/Chicago', tab: null, unread: 0, timer: null, poll: null, crewOnly: true, apprStatus: 'pending', payWeek: null };
+
+  /* ---------- utilities ---------- */
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  async function api(method, url, body) {
+    const opts = { method, headers: { 'X-VT': '1' }, credentials: 'same-origin' };
+    if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    let res;
+    try { res = await fetch(url, opts); } catch { throw new Error('No connection. Check your signal and try again.'); }
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && S.user) { S.user = null; render(); }
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  }
+  function toast(msg, bad) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+    clearTimeout(toast._t); toast._t = setTimeout(() => { t.className = ''; }, 3200);
+  }
+  const money = (n) => '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function hrs(h) {
+    const mins = Math.round((h || 0) * 60);
+    const H = Math.floor(mins / 60), M = mins % 60;
+    return H ? `${H}h ${String(M).padStart(2, '0')}m` : `${M}m`;
+  }
+  const dec = (h) => (Math.round((h || 0) * 100) / 100).toFixed(2);
+  function ymdParts(ymd) { const [y, m, d] = ymd.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); }
+  const fmtDay = (ymd, o = {}) => ymdParts(ymd).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', ...o });
+  const fmtShort = (ymd) => ymdParts(ymd).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+  const dowLetter = (ymd) => ymdParts(ymd).toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'short' }).slice(0, 2);
+  const fmtTime = (ms) => new Date(ms).toLocaleTimeString('en-US', { timeZone: S.tz, hour: 'numeric', minute: '2-digit' });
+  const fmtDT = (ms) => new Date(ms).toLocaleString('en-US', { timeZone: S.tz, weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  function ymdOf(ms) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: S.tz, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+    return `${p.year}-${p.month}-${p.day}`;
+  }
+  function localInput(ms) {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: S.tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+    return `${p.year}-${p.month}-${p.day}T${String(+p.hour % 24).padStart(2, '0')}:${p.minute}`;
+  }
+  function addDays(ymd, n) { const d = ymdParts(ymd); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  const today = () => ymdOf(Date.now());
+  const range = (a, b) => a === b ? fmtDay(a) : `${fmtShort(a)} – ${fmtShort(b)}`;
+  function ago(ms) {
+    const s = (Date.now() - ms) / 1000;
+    if (s < 60) return 'just now';
+    if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)} hr ago`;
+    return fmtDT(ms);
+  }
+  const initials = (n) => String(n || '?').split(/\s+/).map((x) => x[0]).slice(0, 2).join('').toUpperCase();
+  const roleName = (r) => ({ owner: 'Owner', supervisor: 'Team lead / Supervisor', tech: 'Tech' }[r] || r);
+  const mapLink = (lat, lng) => lat == null ? '' : `<a class="small" href="https://maps.google.com/?q=${lat},${lng}" target="_blank" rel="noopener">Map</a>`;
+
+  const I = {
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+    list: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M4 10h16"/></svg>',
+    plane: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8h2l-1 8h5l2-3h2l-1 4 1 4h-2l-2-3h-5l1 8h-2l-3-8H3z"/></svg>',
+    team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14.5c2.3 0 4 1.5 4.5 4"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13l2.5-8h11L20 13v6H4z"/><path d="M4 13h4.5l1 2h5l1-2H20"/></svg>',
+    dollar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M16.5 7.5c-.6-1.4-2.3-2.3-4.5-2.3-2.6 0-4.3 1.3-4.3 3.2 0 4.4 9 2.3 9 6.8 0 1.9-1.9 3.4-4.7 3.4-2.4 0-4.2-1-4.8-2.6"/></svg>',
+    users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="4"/><path d="M3 21c.6-4 3.4-6.5 7-6.5"/><path d="M18 14v7M14.5 17.5h7"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></svg>',
+    left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
+    bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-5 9 5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>',
+    sick: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>',
+    wrench: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5a4 4 0 0 0 5 5l-9 9a2.1 2.1 0 0 1-3-3l9-9a4 4 0 0 0-2-2z"/></svg>',
+    cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17M9 15l2 2 4-4"/></svg>',
+    gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
+  };
+  const chev = `<span class="chev">${I.right.replace('<svg', '<svg width="18" height="18"')}</span>`;
+
+  /* ---------- sheet (bottom modal) ---------- */
+  function openSheet(title, html, onMount) {
+    $sheet.innerHTML = `<div class="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-grab"></div>
+      <div class="sheet-head"><h3>${esc(title)}</h3><button class="icon-btn" data-close aria-label="Close">${I.x}</button></div><div class="sheet-body">${html}</div></div></div>`;
+    const bg = $sheet.firstElementChild;
+    bg.addEventListener('click', (e) => { if (e.target === bg || e.target.closest('[data-close]')) closeSheet(); });
+    document.body.style.overflow = 'hidden';
+    if (onMount) onMount($sheet.querySelector('.sheet-body'));
+  }
+  function closeSheet() { $sheet.innerHTML = ''; document.body.style.overflow = ''; }
+  function confirmSheet(title, html, okLabel, okClass, fn) {
+    openSheet(title, `${html}<div id="cf-err"></div><div class="btn-row" style="margin-top:18px"><button class="btn ghost" data-close>Cancel</button><button class="btn ${okClass || ''}" id="cf-ok">${esc(okLabel)}</button></div>`, (b) => {
+      b.querySelector('#cf-ok').onclick = async (e) => {
+        e.target.disabled = true;
+        try { await fn(b); closeSheet(); } catch (err) { b.querySelector('#cf-err').innerHTML = `<div class="err" style="margin-top:14px">${esc(err.message)}</div>`; e.target.disabled = false; }
+      };
+    });
+  }
+  function bindForm(form, fn) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = form.querySelector('[type=submit]');
+      const errBox = form.querySelector('.form-err');
+      if (btn) btn.disabled = true;
+      if (errBox) errBox.innerHTML = '';
+      try { await fn(Object.fromEntries(new FormData(form))); }
+      catch (err) { if (errBox) errBox.innerHTML = `<div class="err">${esc(err.message)}</div>`; else toast(err.message, true); }
+      finally { if (btn) btn.disabled = false; }
+    });
+  }
+
+  /* ---------- location ---------- */
+  function getLocation() {
+    return new Promise((resolve) => {
+      if (window.VT_FAKE_LOCATION) return resolve(window.VT_FAKE_LOCATION());
+      if (!navigator.geolocation) return resolve(null);
+      let done = false;
+      const finish = (v) => { if (!done) { done = true; resolve(v); } };
+      setTimeout(() => finish(null), 9000);
+      navigator.geolocation.getCurrentPosition(
+        (p) => finish({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }),
+        () => finish(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    });
+  }
+
+  /* ---------- QR (SVG is generated by our own server) ---------- */
+  function showLink(title, intro, url, name, qrSvg) {
+    openSheet(title, `<p class="muted" style="margin-top:0">${intro}</p>
+      <div class="qr-box" id="qr">${qrSvg || '<div class="muted small" style="color:#555;text-align:center">Use Copy link or Text it.</div>'}</div>
+      <div class="linkbox" id="lnk">${esc(url)}</div>
+      <div class="btn-row"><button class="btn ghost" id="cp">Copy link</button><a class="btn ghost" href="sms:?&body=${encodeURIComponent(`${name ? name + ', here' : 'Here'} is your VayTech app link: ${url}`)}">Text it</a></div>
+      ${navigator.share ? '<button class="btn block" id="sh" style="margin-top:10px">Share…</button>' : ''}`, (b) => {
+      b.querySelector('#cp').onclick = async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { toast('Press and hold the link to copy'); } };
+      const sh = b.querySelector('#sh');
+      if (sh) sh.onclick = () => navigator.share({ title: 'VayTech', text: 'Your VayTech app link', url }).catch(() => {});
+    });
+  }
+
+  /* ---------- boot & routing ---------- */
+  async function boot() {
+    try {
+      S.boot = await api('GET', '/api/bootstrap');
+      S.user = S.boot.user; S.tz = S.boot.settings.timezone;
+    } catch (e) {
+      $app.innerHTML = `<div class="auth"><div class="logo-mark">V</div><h1>Can't connect</h1><p class="sub">${esc(e.message)}</p><button class="btn" onclick="location.reload()">Try again</button></div>`;
+      return;
+    }
+    render();
+  }
+  function render() {
+    clearInterval(S.timer); S.timer = null;
+    const m = /^\/join\/([\w-]+)/.exec(location.pathname) || (window.VT_JOIN ? [0, window.VT_JOIN] : null);
+    if (m) return renderJoin(m[1]);
+    if (S.boot.setupNeeded) return renderSetup();
+    if (!S.user) { clearInterval(S.poll); S.poll = null; return renderLogin(); }
+    renderShell();
+  }
+  function tabsFor(role) {
+    if (role === 'owner') return [['payroll', 'Payroll', I.dollar], ['team', 'Team', I.team], ['approvals', 'Requests', I.inbox], ['people', 'People', I.users]];
+    if (role === 'supervisor') return [['clock', 'Clock', I.clock], ['hours', 'My pay', I.list], ['team', 'Team', I.team], ['approvals', 'Approve', I.inbox], ['timeoff', 'Time off', I.plane]];
+    return [['clock', 'Clock', I.clock], ['hours', 'My pay', I.list], ['timeoff', 'Time off', I.plane]];
+  }
+
+  /* ---------- auth screens ---------- */
+  function authPage(title, sub, form) {
+    $app.innerHTML = `<div class="auth"><div class="logo-mark">V</div><div class="wordmark">${esc((S.boot?.settings.company_name || 'VayTech').toUpperCase())}</div><h1>${title}</h1><p class="sub">${sub}</p>${form}</div>`;
+    return $app.querySelector('form');
+  }
+  function renderLogin() {
+    const f = authPage('Sign in', 'Use the phone number or email you signed up with.', `<form>
+      <div class="form-err"></div>
+      <label class="f"><span>Phone or email</span><input class="input" name="login" autocomplete="username" inputmode="email" required></label>
+      <label class="f"><span>Password</span><input class="input" name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn block" type="submit">Sign in</button>
+      <p class="muted small" style="text-align:center;margin-top:22px">Forgot your password? Ask the office for a reset link.<br>New here? Scan the QR code your boss sent you.</p></form>`);
+    bindForm(f, async (d) => { await api('POST', '/api/login', d); await boot(); });
+  }
+  function renderSetup() {
+    const f = authPage('Set up VayTech Time', 'Create the owner account. This is you — you\'ll see everyone\'s hours and pay.', `<form>
+      <div class="form-err"></div>
+      <label class="f"><span>Your name</span><input class="input" name="name" autocomplete="name" required></label>
+      <label class="f"><span>Email</span><input class="input" name="email" type="email" autocomplete="email"></label>
+      <label class="f"><span>Phone</span><input class="input" name="phone" type="tel" autocomplete="tel"></label>
+      <label class="f"><span>Password (8+ characters)</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn block" type="submit">Create owner account</button></form>`);
+    bindForm(f, async (d) => { await api('POST', '/api/setup', d); await boot(); });
+  }
+  async function renderJoin(token) {
+    $app.innerHTML = '<div class="auth"><div class="spin"></div></div>';
+    let inv;
+    try { inv = await api('GET', `/api/invite/${token}`); }
+    catch (e) { authPage('Link not valid', esc(e.message), '<a class="btn block" href="/">Go to sign in</a>'); return; }
+    const done = async () => { window.VT_JOIN = null; if (location.pathname.startsWith('/join/')) history.replaceState(null, '', '/'); await boot(); };
+    if (inv.kind === 'reset') {
+      const f = authPage('Set a new password', `Hi ${esc(inv.name)}. Pick a new password for your account.`, `<form><div class="form-err"></div>
+        <label class="f"><span>New password (8+ characters)</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="f"><span>Type it again</span><input class="input" name="password2" type="password" autocomplete="new-password" required></label>
+        <button class="btn block" type="submit">Save password</button></form>`);
+      bindForm(f, async (d) => { if (d.password !== d.password2) throw new Error('Passwords do not match'); await api('POST', `/api/invite/${token}/accept`, { password: d.password }); toast('Password saved'); await done(); });
+      return;
+    }
+    const f = authPage(`Welcome, ${esc(inv.name.split(' ')[0])}`, `Create your ${esc(inv.company)} account to clock in, see your hours and pay, and request time off.`, `<form><div class="form-err"></div>
+      <label class="f"><span>Full name</span><input class="input" name="name" value="${esc(inv.name)}" autocomplete="name" required></label>
+      <label class="f"><span>Mobile phone</span><input class="input" name="phone" type="tel" autocomplete="tel" placeholder="(555) 555-5555" required><div class="hint">You'll sign in with this number.</div></label>
+      <label class="f"><span>Email (optional)</span><input class="input" name="email" type="email" autocomplete="email"></label>
+      <label class="f"><span>Password (8+ characters)</span><input class="input" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="f"><span>Type it again</span><input class="input" name="password2" type="password" autocomplete="new-password" required></label>
+      <button class="btn block" type="submit">Create my account</button></form>`);
+    bindForm(f, async (d) => {
+      if (d.password !== d.password2) throw new Error('Passwords do not match');
+      await api('POST', `/api/invite/${token}/accept`, { name: d.name, phone: d.phone, email: d.email, password: d.password });
+      toast('Account created'); await done();
+    });
+  }
+
+  /* ---------- shell ---------- */
+  function renderShell() {
+    const tabs = tabsFor(S.user.role);
+    if (!S.tab || !tabs.some((t) => t[0] === S.tab)) S.tab = tabs[0][0];
+    $app.innerHTML = `
+      <header class="topbar"><div class="topbar-in">
+        <div class="brand"><div class="logo-mark">V</div>${esc(S.boot.settings.company_name.toUpperCase())}</div>
+        <button class="icon-btn" id="bell" aria-label="Notifications">${I.bell}<span class="badge" id="bell-n" hidden></span></button>
+        <button class="icon-btn" id="me" aria-label="Account"><span class="avatar">${esc(initials(S.user.name))}</span></button>
+      </div></header>
+      <main class="shell" id="view"></main>
+      <nav class="tabbar"><div class="tabbar-in">${tabs.map(([k, l, ic]) => `<button class="tab ${k === S.tab ? 'active' : ''}" data-tab="${k}">${ic}<span>${l}</span>${k === 'approvals' ? '<span class="badge" id="appr-n" hidden></span>' : ''}</button>`).join('')}</div></nav>`;
+    $app.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => { S.tab = b.dataset.tab; window.scrollTo(0, 0); renderShell(); }; });
+    $app.querySelector('#bell').onclick = openNotifications;
+    $app.querySelector('#me').onclick = openAccount;
+    updateBadge();
+    if (!S.poll) {
+      S.poll = setInterval(refreshCount, 30000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && S.user) { refreshCount(); if (S.tab === 'clock') showTab(); } });
+    }
+    refreshCount();
+    showTab();
+  }
+  async function refreshCount() {
+    if (!S.user) return;
+    try { const r = await api('GET', '/api/notifications/count'); S.unread = r.unread; updateBadge(); } catch {}
+    if (S.user.role !== 'tech') {
+      try { const r = await api('GET', '/api/team/requests?status=pending'); const n = document.getElementById('appr-n'); if (n) { n.hidden = !r.items.length; n.textContent = r.items.length; } } catch {}
+    }
+  }
+  function updateBadge() { const b = document.getElementById('bell-n'); if (b) { b.hidden = !S.unread; b.textContent = S.unread > 9 ? '9+' : S.unread; } }
+  function showTab() {
+    const v = document.getElementById('view');
+    if (!v) return;
+    v.innerHTML = '<div class="spin"></div>';
+    const fn = { clock: viewClock, hours: viewHours, timeoff: viewTimeOff, team: viewTeam, approvals: viewApprovals, payroll: viewPayroll, people: viewPeople }[S.tab];
+    fn(v).catch((e) => { v.innerHTML = `<div class="err">${esc(e.message)}</div><button class="btn ghost" id="rt">Try again</button>`; v.querySelector('#rt').onclick = showTab; });
+  }
+
+  async function openNotifications() {
+    openSheet('Notifications', '<div class="spin"></div>');
+    const r = await api('GET', '/api/notifications');
+    const body = $sheet.querySelector('.sheet-body');
+    if (!body) return;
+    body.innerHTML = r.items.length ? `<div class="list">${r.items.map((n) => `<div class="notif ${n.read_at ? '' : 'unread'}"><div class="t">${n.read_at ? '' : '<span class="dot on"></span>'}${esc(n.title)}</div><div class="b">${esc(n.body)}</div><div class="w">${esc(ago(n.created_at))}</div></div>`).join('')}</div>` : '<div class="empty">No notifications yet.</div>';
+    if (r.unread) { await api('POST', '/api/notifications/read', {}).catch(() => {}); S.unread = 0; updateBadge(); }
+  }
+  function openAccount() {
+    openSheet('Account', `<div class="card"><div class="row"><span class="avatar" style="width:44px;height:44px;font-size:16px">${esc(initials(S.user.name))}</span><div class="grow"><div style="font-weight:700">${esc(S.user.name)}</div><div class="muted small">${esc(roleName(S.user.role))}</div></div></div>
+      <div style="margin-top:12px">${S.user.phone ? `<div class="kv"><span>Phone</span><span>${esc(S.user.phone)}</span></div>` : ''}${S.user.email ? `<div class="kv"><span>Email</span><span>${esc(S.user.email)}</span></div>` : ''}${S.user.hourly_rate != null && S.user.role !== 'owner' ? `<div class="kv"><span>Pay rate</span><span>${money(S.user.hourly_rate)}/hr</span></div>` : ''}</div></div>
+      ${installHelp()}
+      <h2>Change password</h2>
+      <form id="pw"><div class="form-err"></div>
+      <label class="f"><span>Current password</span><input class="input" name="current" type="password" autocomplete="current-password" required></label>
+      <label class="f"><span>New password</span><input class="input" name="next" type="password" minlength="8" autocomplete="new-password" required></label>
+      <button class="btn ghost block" type="submit">Update password</button></form>
+      <button class="btn danger block" id="lo" style="margin-top:18px">Sign out</button>`, (b) => {
+      bindForm(b.querySelector('#pw'), async (d) => { await api('POST', '/api/me/password', d); toast('Password updated'); closeSheet(); });
+      b.querySelector('#lo').onclick = async () => { await api('POST', '/api/logout', {}).catch(() => {}); closeSheet(); S.user = null; S.tab = null; render(); };
+    });
+  }
+  const standalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  function installHelp() {
+    if (standalone()) return '';
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    return `<div class="banner" style="margin-top:10px"><div><b>Put this app on your home screen</b><div class="muted small">${ios ? 'In Safari tap the Share button, then “Add to Home Screen”.' : 'In Chrome tap the ⋮ menu, then “Add to Home screen” or “Install app”.'}</div></div></div>`;
+  }
+  function installBanner() {
+    let hidden = false;
+    try { hidden = localStorage.getItem('vt_install_hide') === '1'; } catch {}
+    if (hidden || standalone()) return '';
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    return `<div class="banner" id="ib"><div class="grow"><b>Add VayTech to your home screen</b><div class="muted small">${ios ? 'Tap Share, then “Add to Home Screen”.' : 'Tap ⋮ in Chrome, then “Add to Home screen”.'}</div></div><button class="x" aria-label="Dismiss">×</button></div>`;
+  }
+  function bindInstallBanner(v) {
+    const ib = v.querySelector('#ib');
+    if (ib) ib.querySelector('.x').onclick = () => { try { localStorage.setItem('vt_install_hide', '1'); } catch {} ib.remove(); };
+  }
+
+  /* ---------- views: worker ---------- */
+  function weekBars(w) {
+    const max = Math.max(8, ...w.days.map((d) => d.hours));
+    const t = today();
+    return `<div class="bars">${w.days.map((d) => `<div class="bar"><b>${d.hours ? dec(d.hours).replace(/\.00$/, '') : ''}</b><i class="${d.hours ? '' : 'zero'} ${d.date === t ? 'today' : ''}" style="height:${Math.max(3, (d.hours / max) * 70)}px"></i><span>${dowLetter(d.date)}</span></div>`).join('')}</div>`;
+  }
+  function payStatus(w) {
+    if (w.payment) return `<span class="pill on">${I.check.replace('<svg', '<svg width="13" height="13"')} Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}</span>`;
+    return `<span class="pill">Pays ${esc(fmtDay(w.pay_date))}</span>`;
+  }
+  function shiftList(entries, opts = {}) {
+    if (!entries.length) return '<div class="list"><div class="empty">No shifts yet this week.</div></div>';
+    return `<div class="list">${[...entries].reverse().map((e) => {
+      const h = ((e.clock_out || Date.now()) - e.clock_in) / 3600000;
+      const long = !e.clock_out && h > 12;
+      return `<${opts.edit ? `button class="item" data-entry="${e.id}"` : 'div class="item"'}>
+        <div class="grow"><div class="t">${esc(fmtDay(ymdOf(e.clock_in)))}</div>
+        <div class="s num">${esc(fmtTime(e.clock_in))} – ${e.clock_out ? esc(fmtTime(e.clock_out)) : '<span style="color:var(--on)">on the clock</span>'}${e.auto_capped ? '' : e.edited ? ' · edited' : ''}</div>
+        ${e.auto_capped ? '<div class="changed">Never clocked out · app ended it automatically</div>' : ''}
+        ${opts.edit ? `<div class="s">${e.in_lat != null ? `In ${mapLink(e.in_lat, e.in_lng)}` : 'In: no location'}${e.clock_out ? (e.out_lat != null ? ` · Out ${mapLink(e.out_lat, e.out_lng)}` : (e.created_by === e.user_id ? ' · Out: no location' : '')) : ''}</div>` : ''}
+        ${long ? '<div class="changed">Open over 12 hours — did they forget to clock out?</div>' : ''}</div>
+        <div class="r num" style="font-weight:700">${hrs(h)}</div>${opts.edit ? chev : ''}</${opts.edit ? 'button' : 'div'}>`;
+    }).join('')}</div>`;
+  }
+
+  async function viewClock(v) {
+    const d = await api('GET', '/api/me/dashboard');
+    const w = d.week; const open = d.open;
+    v.innerHTML = `${installBanner()}
+      <div class="card clock-card">
+        <div class="clock-status">${open ? `<span class="pill on"><span class="dot on"></span> On the clock since ${esc(fmtTime(open.clock_in))}</span>` : 'You are clocked out'}</div>
+        <div class="clock-timer num" id="tm">${open ? '' : esc(new Date().toLocaleTimeString('en-US', { timeZone: S.tz, hour: 'numeric', minute: '2-digit' }))}</div>
+        <button class="clock-btn ${open ? 'out' : ''}" id="cb">${I.clock}${open ? 'CLOCK OUT' : 'CLOCK IN'}</button>
+        <div class="loc-note">${I.pin} Your location is saved when you clock in and out</div>
+        ${d.settings.max_shift_hours ? `<div class="loc-note" style="margin-top:6px">Forget to clock out? Your shift ends on its own after ${d.settings.max_shift_hours} hours.</div>` : ''}
+      </div>
+      <h2>This week · ${esc(range(w.week_start, w.week_end))}</h2>
+      <div class="split">
+        <div class="card"><div class="stat-label">Hours</div><div class="stat-big num" id="wk-h">${dec(w.hours)}</div><div class="muted small" style="margin-top:6px">${w.overtime ? `${dec(w.regular)} reg + <b style="color:var(--warn)">${dec(w.overtime)} OT</b>` : (d.settings.ot_enabled ? `${dec(Math.max(0, d.settings.ot_threshold - w.hours))} until overtime` : hrs(w.hours) + ' worked')}</div></div>
+        <div class="card"><div class="stat-label">Est. pay</div><div class="stat-big num">${money(w.gross).replace(/\.\d\d$/, '')}<span style="font-size:20px">${money(w.gross).slice(-3)}</span></div><div class="muted small" style="margin-top:6px">${money(w.rate)}/hr${w.overtime ? ` · OT ${money(w.rate * d.settings.ot_multiplier)}` : ''}</div></div>
+      </div>
+      <div class="card deposit">${I.bank}<div class="grow"><div style="font-weight:700">Deposit: ${esc(fmtDay(w.pay_date, { weekday: 'long' }))}</div><div class="muted small">Pay for this week is sent ${esc(fmtDay(w.pay_date))}. You'll get a notification when it's sent.</div></div></div>
+      <div class="card">${weekBars(w)}</div>
+      <h2>Shifts this week</h2>${shiftList(w.entries)}
+      <p class="muted small" style="margin-top:14px">Forgot to clock in or out? Go to <b>Time off</b> → <b>Fix my hours</b> and your lead will correct it.</p>`;
+    bindInstallBanner(v);
+    if (open) {
+      const tick = () => { const s = Math.floor((Date.now() - open.clock_in) / 1000); const el = document.getElementById('tm'); if (el) el.textContent = `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+      tick(); S.timer = setInterval(tick, 1000);
+    }
+    v.querySelector('#cb').onclick = async (e) => {
+      const btn = e.currentTarget; btn.disabled = true;
+      btn.lastChild.textContent = 'GETTING LOCATION…';
+      const pos = await getLocation();
+      try {
+        const r = await api('POST', open ? '/api/clock/out' : '/api/clock/in', pos || {});
+        if (r.capped) toast(`You went over ${r.hours} hours, so your shift was ended at ${r.hours} hours`, true);
+        else toast(open ? 'Clocked out' + (pos ? '' : ' (no location)') : 'Clocked in' + (pos ? '' : ' (no location)'));
+      } catch (err) { toast(err.message, true); }
+      clearInterval(S.timer); showTab();
+    };
+  }
+
+  async function viewHours(v) {
+    const d = await api('GET', '/api/me/dashboard');
+    const weeks = [d.week, ...d.history];
+    v.innerHTML = `<h1>My pay</h1>
+      <div class="card"><div class="stat-label">This week so far</div><div class="row between"><div class="stat-big num">${money(d.week.gross)}</div>${payStatus(d.week)}</div>
+      <div class="muted small" style="margin-top:8px">${dec(d.week.hours)} hours${d.week.overtime ? ` · ${dec(d.week.overtime)} overtime` : ''} · paid weekly</div></div>
+      <h2>Weeks</h2><div class="list">${weeks.map((w) => `<button class="item" data-wk="${w.week_start}"><div class="grow"><div class="t">${esc(range(w.week_start, w.week_end))}</div><div class="s num">${dec(w.hours)} hrs${w.overtime ? ` · ${dec(w.overtime)} OT` : ''}</div></div>
+        <div class="r"><div class="num" style="font-weight:700">${money(w.payment ? w.payment.amount : w.gross)}</div><div style="margin-top:3px">${payStatus(w)}</div></div>${chev}</button>`).join('')}</div>
+      <p class="muted small" style="margin-top:14px">Estimated gross pay before taxes: your hours × ${money(d.week.rate)}/hr.${d.settings.ot_enabled ? ` Overtime is paid at ${d.settings.ot_multiplier}× after ${d.settings.ot_threshold} hours in a week.` : ''}</p>`;
+    v.querySelectorAll('[data-wk]').forEach((b) => { b.onclick = () => openMyWeek(b.dataset.wk); });
+  }
+  async function openMyWeek(start) {
+    openSheet('Week', '<div class="spin"></div>');
+    const w = await api('GET', `/api/me/week?start=${start}`);
+    const b = $sheet.querySelector('.sheet-body'); if (!b) return;
+    $sheet.querySelector('.sheet-head h3').textContent = range(w.week_start, w.week_end);
+    b.innerHTML = `<div class="card"><div class="kv"><span>Total hours</span><span class="num">${dec(w.hours)}</span></div><div class="kv"><span>Regular</span><span class="num">${dec(w.regular)}</span></div><div class="kv"><span>Overtime</span><span class="num">${dec(w.overtime)}</span></div>
+      <div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div>
+      <div class="kv"><span>Deposit</span><span>${w.payment ? `Sent ${esc(fmtDT(w.payment.paid_at))}` : esc(fmtDay(w.pay_date))}</span></div></div>
+      <div class="card">${weekBars(w)}</div><h2>Shifts</h2>${shiftList(w.entries)}`;
+  }
+
+  async function viewTimeOff(v) {
+    const r = await api('GET', '/api/requests');
+    const notice = S.boot.settings.timeoff_notice_days;
+    v.innerHTML = `<h1>Time off</h1>
+      <div class="action-grid">
+        <button class="action" data-new="time_off"><span class="ic">${I.cal}</span><span class="grow"><div class="t">Request a day off</div><div class="s">At least ${notice} days ahead · your supervisor approves</div></span>${chev}</button>
+        <button class="action" data-new="sick"><span class="ic">${I.sick}</span><span class="grow"><div class="t">Call in sick</div><div class="s">Today or any day you need</div></span>${chev}</button>
+        <button class="action" data-new="correction"><span class="ic">${I.wrench}</span><span class="grow"><div class="t">Fix my hours</div><div class="s">Forgot to clock in or out</div></span>${chev}</button>
+      </div>
+      <h2>My requests</h2>${requestList(r.items, false)}`;
+    v.querySelectorAll('[data-new]').forEach((b) => { b.onclick = () => newRequest(b.dataset.new); });
+    v.querySelectorAll('[data-cancel]').forEach((b) => {
+      b.onclick = () => confirmSheet('Cancel request?', '<p class="muted">Your supervisor will no longer see it.</p>', 'Cancel request', 'danger', async () => { await api('POST', `/api/requests/${b.dataset.cancel}/cancel`, {}); toast('Request cancelled'); showTab(); });
+    });
+  }
+  function statusPill(s) { return `<span class="pill ${{ approved: 'on', pending: 'warn', denied: 'bad' }[s] || ''}">${esc({ approved: 'Approved', pending: 'Waiting', denied: 'Denied', cancelled: 'Cancelled' }[s])}</span>`; }
+  function requestList(items, manage) {
+    if (!items.length) return `<div class="list"><div class="empty">${manage ? 'Nothing here.' : 'No requests yet.'}</div></div>`;
+    return items.map((r) => `<div class="card">
+      <div class="row between"><div class="grow"><div style="font-weight:700">${manage ? esc(r.user_name) + ' · ' : ''}${esc(r.type_label)}</div><div class="muted small">${esc(range(r.start_date, r.end_date))}</div></div>${statusPill(r.status)}</div>
+      ${r.reason ? `<div style="margin-top:10px;font-size:14px">${esc(r.reason)}</div>` : ''}
+      ${r.decided_by_name && r.status !== 'pending' ? `<div class="muted small" style="margin-top:8px">${r.status === 'approved' ? 'Approved' : 'Denied'} by ${esc(r.decided_by_name)}${r.decision_note ? ` — “${esc(r.decision_note)}”` : ''}</div>` : ''}
+      ${manage && r.status === 'pending' ? `<div class="btn-row" style="margin-top:14px"><button class="btn danger sm" data-deny="${r.id}">Deny</button>${r.type === 'correction' ? `<button class="btn ghost sm" data-fixhours="${r.user_id}" data-day="${r.start_date}">Open hours</button>` : ''}<button class="btn ok sm" data-approve="${r.id}">${r.type === 'correction' ? 'Mark fixed' : 'Approve'}</button></div>` : ''}
+      ${!manage && r.status === 'pending' ? `<button class="btn ghost sm" style="margin-top:12px" data-cancel="${r.id}">Cancel</button>` : ''}
+      <div class="muted small" style="margin-top:8px;font-size:12px">Sent ${esc(ago(r.created_at))}</div></div>`).join('');
+  }
+  function newRequest(type) {
+    const notice = S.boot.settings.timeoff_notice_days;
+    const t = today();
+    const minOff = addDays(t, notice);
+    const cfg = {
+      time_off: { title: 'Request a day off', min: minOff, max: '', start: minOff, note: `Pick dates on or after ${fmtDay(minOff)} (${notice} days notice).`, reason: 'Reason (optional)' },
+      sick: { title: 'Call in sick', min: addDays(t, -14), max: addDays(t, 30), start: t, note: 'Your supervisor gets notified right away.', reason: 'Anything they should know? (optional)' },
+      correction: { title: 'Fix my hours', min: addDays(t, -30), max: t, start: t, note: 'Tell your lead what happened. They will fix your hours.', reason: 'What needs fixing? (e.g. “Forgot to clock out, left at 4:30 PM”)' }
+    }[type];
+    openSheet(cfg.title, `<form><div class="form-err"></div>
+      <div class="split"><label class="f"><span>${type === 'correction' ? 'Day' : 'From'}</span><input class="input" type="date" name="start_date" value="${cfg.start}" min="${cfg.min}" ${cfg.max ? `max="${cfg.max}"` : ''} required></label>
+      ${type === 'correction' ? '<div></div>' : `<label class="f"><span>To</span><input class="input" type="date" name="end_date" value="${cfg.start}" min="${cfg.min}" required></label>`}</div>
+      <p class="hint" style="margin:-4px 0 14px">${esc(cfg.note)}</p>
+      <label class="f"><span>${esc(cfg.reason)}</span><textarea class="input" name="reason" ${type === 'correction' ? 'required' : ''}></textarea></label>
+      <button class="btn block" type="submit">Send to supervisor</button></form>`, (b) => {
+      const f = b.querySelector('form');
+      const s = f.start_date, e = f.end_date;
+      if (e) s.addEventListener('change', () => { e.min = s.value; if (e.value < s.value) e.value = s.value; });
+      bindForm(f, async (d) => { await api('POST', '/api/requests', { type, ...d, end_date: d.end_date || d.start_date }); closeSheet(); toast('Request sent'); showTab(); });
+    });
+  }
+
+  /* ---------- views: team / approvals ---------- */
+  async function viewTeam(v) {
+    const d = await api('GET', '/api/team');
+    const isOwner = S.user.role === 'owner';
+    let people = d.people.filter((p) => p.active);
+    const hasCrew = !isOwner && people.some((p) => p.lead_id === S.user.id);
+    if (hasCrew && S.crewOnly) people = people.filter((p) => p.lead_id === S.user.id);
+    const on = people.filter((p) => p.open);
+    v.innerHTML = `<h1>Team</h1>
+      ${hasCrew ? `<div class="seg"><button class="${S.crewOnly ? 'on' : ''}" data-crew="1">My crew</button><button class="${S.crewOnly ? '' : 'on'}" data-crew="0">Everyone</button></div>` : ''}
+      <div class="split" style="margin-bottom:6px"><div class="card"><div class="stat-label">On the clock</div><div class="stat-big num">${on.length}<span class="muted" style="font-size:18px"> / ${people.length}</span></div></div>
+      <div class="card"><div class="stat-label">${isOwner ? 'Pay this week' : 'Hours this week'}</div><div class="stat-big num" style="font-size:${isOwner ? 30 : 40}px">${isOwner ? money(people.reduce((a, p) => a + (p.week_gross || 0), 0)) : dec(people.reduce((a, p) => a + p.week_hours, 0))}</div></div></div>
+      <h2>People</h2>
+      ${people.length ? `<div class="list">${people.map((p) => {
+        const long = p.open && (Date.now() - p.open.clock_in) > 12 * 3600000;
+        return `<button class="item" data-p="${p.id}"><span class="dot ${p.open ? 'on' : ''}"></span><div class="grow"><div class="t">${esc(p.name)}</div>
+        <div class="s">${p.open ? `In since ${esc(fmtTime(p.open.clock_in))}${p.open.in_lat != null ? '' : ' · no location'}` : 'Off the clock'}${p.role === 'supervisor' ? ' · Lead' : ''}</div>${long ? '<div class="changed">Clocked in over 12 hrs</div>' : ''}</div>
+        <div class="r"><div class="num" style="font-weight:700">${dec(p.week_hours)}h</div>${p.week_overtime ? `<div class="small" style="color:var(--warn)">${dec(p.week_overtime)} OT</div>` : ''}</div>${chev}</button>`;
+      }).join('')}</div>` : `<div class="list"><div class="empty">${isOwner ? 'No one yet. Go to People to add your techs.' : 'No techs assigned yet.'}</div></div>`}`;
+    v.querySelectorAll('[data-crew]').forEach((b) => { b.onclick = () => { S.crewOnly = b.dataset.crew === '1'; showTab(); }; });
+    v.querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => openPerson(Number(b.dataset.p)); });
+  }
+  async function openPerson(id, start) {
+    openSheet('…', '<div class="spin"></div>');
+    let d;
+    try { d = await api('GET', `/api/team/${id}/week${start ? `?start=${start}` : ''}`); } catch (e) { const b = $sheet.querySelector('.sheet-body'); if (b) b.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+    const b = $sheet.querySelector('.sheet-body'); if (!b) return;
+    const w = d.week; const isOwner = S.user.role === 'owner';
+    const curStart = w.week_start;
+    $sheet.querySelector('.sheet-head h3').textContent = d.person.name;
+    b.innerHTML = `<div class="weeknav"><button class="icon-btn" id="pv" aria-label="Previous week">${I.left}</button><div class="lbl">${esc(range(w.week_start, w.week_end))}<small>${w.week_start <= today() && today() <= w.week_end ? 'This week' : `Pays ${esc(fmtDay(w.pay_date))}`}</small></div><button class="icon-btn" id="nx" aria-label="Next week" ${today() <= w.week_end ? 'disabled style="opacity:.3"' : ''}>${I.right}</button></div>
+      <div class="card"><div class="kv"><span>Hours</span><span class="num">${dec(w.hours)}${w.overtime ? ` <span style="color:var(--warn)">(${dec(w.overtime)} OT)</span>` : ''}</span></div>
+      ${isOwner ? `<div class="kv"><span>Rate</span><span class="num">${money(w.rate)}/hr</span></div><div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div><div class="kv"><span>Payment</span><span>${w.payment ? `<span class="pill on">Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}</span>` : 'Not sent'}</span></div>` : ''}
+      ${d.person.phone ? `<div class="kv"><span>Phone</span><a href="tel:${esc(d.person.phone)}">${esc(d.person.phone)}</a></div>` : ''}</div>
+      ${isOwner && w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01 ? `<div class="err" style="background:var(--warn-bg);color:var(--warn)">Hours changed after this week was paid. Paid ${money(w.payment.amount)}, now ${money(w.gross)}.</div>` : ''}
+      <div class="row between" style="margin:22px 0 10px"><h2 style="margin:0">Shifts</h2><button class="btn sm" id="add">+ Add shift</button></div>
+      ${shiftList(w.entries, { edit: true })}
+      ${d.edits.length ? `<h2>Recent changes</h2><div class="list">${d.edits.slice(0, 8).map((x) => `<div class="item" style="cursor:default"><div class="grow"><div class="s">${x.action === 'auto' ? 'App ended a shift automatically' : `${esc(x.editor_name)} ${{ add: 'added', edit: 'edited', delete: 'removed' }[x.action]} a shift`} · ${esc(ago(x.at))}</div><div style="font-size:14px">${esc(x.reason)}</div></div></div>`).join('')}</div>` : ''}`;
+    b.querySelector('#pv').onclick = () => openPerson(id, addDays(curStart, -7));
+    const nx = b.querySelector('#nx'); if (!nx.disabled) nx.onclick = () => openPerson(id, addDays(curStart, 7));
+    b.querySelector('#add').onclick = () => editEntry(id, null, curStart);
+    b.querySelectorAll('[data-entry]').forEach((el) => { el.onclick = (e) => { if (e.target.closest('a')) return; editEntry(id, w.entries.find((x) => x.id === Number(el.dataset.entry)), curStart); }; });
+  }
+  function editEntry(personId, entry, weekStart) {
+    const defIn = entry ? localInput(entry.clock_in) : `${today() <= addDays(weekStart, 6) ? today() : weekStart}T07:00`;
+    const defOut = entry ? (entry.clock_out ? localInput(entry.clock_out) : '') : `${defIn.slice(0, 10)}T15:30`;
+    const nowIn = localInput(Date.now());
+    openSheet(entry ? 'Edit shift' : 'Add shift', `<form><div class="form-err"></div>
+      <label class="f"><span>Clock in</span><input class="input" type="datetime-local" name="clock_in" value="${defIn}" max="${nowIn}" required></label>
+      <label class="f"><span>Clock out</span><input class="input" type="datetime-local" name="clock_out" value="${defOut}" max="${nowIn}"><div class="hint">Leave empty only if they are still working.</div></label>
+      <label class="f"><span>Reason (they will see this)</span><input class="input" name="reason" placeholder="e.g. Forgot to clock out" required></label>
+      <button class="btn block" type="submit">${entry ? 'Save changes' : 'Add shift'}</button>
+      ${entry ? '<button type="button" class="btn danger block" id="del" style="margin-top:10px">Remove shift</button>' : ''}</form>`, (b) => {
+      const f = b.querySelector('form');
+      const after = (r) => { if (r.paid_week) toast('Saved. Note: that week was already paid.', true); else toast('Saved — they were notified'); openPerson(personId, weekStart); };
+      bindForm(f, async (d) => {
+        const r = entry ? await api('PUT', `/api/entries/${entry.id}`, d) : await api('POST', `/api/team/${personId}/entries`, d);
+        after(r);
+      });
+      const del = b.querySelector('#del');
+      if (del) del.onclick = async () => {
+        const reason = f.reason.value.trim();
+        if (!reason) { f.querySelector('.form-err').innerHTML = '<div class="err">Type a reason first, then tap Remove.</div>'; f.reason.focus(); return; }
+        del.disabled = true;
+        try { after(await api('DELETE', `/api/entries/${entry.id}`, { reason })); } catch (e) { del.disabled = false; f.querySelector('.form-err').innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+      };
+    });
+  }
+
+  async function viewApprovals(v) {
+    const r = await api('GET', `/api/team/requests?status=${S.apprStatus}`);
+    v.innerHTML = `<h1>Requests</h1>
+      <div class="seg">${[['pending', 'Waiting'], ['approved', 'Approved'], ['denied', 'Denied']].map(([k, l]) => `<button class="${S.apprStatus === k ? 'on' : ''}" data-st="${k}">${l}</button>`).join('')}</div>
+      ${requestList(r.items, true)}`;
+    v.querySelectorAll('[data-st]').forEach((b) => { b.onclick = () => { S.apprStatus = b.dataset.st; showTab(); }; });
+    const decide = (id, status) => {
+      const item = r.items.find((x) => x.id === Number(id));
+      const verb = status === 'approved' ? (item.type === 'correction' ? 'Mark as fixed' : 'Approve') : 'Deny';
+      confirmSheet(`${verb}?`, `<p class="muted" style="margin-top:0">${esc(item.user_name)} · ${esc(item.type_label)} · ${esc(range(item.start_date, item.end_date))}</p>
+        <label class="f"><span>Note to ${esc(item.user_name.split(' ')[0])} (optional)</span><input class="input" id="dn" placeholder="${status === 'denied' ? 'e.g. We are short-staffed that week' : 'e.g. Enjoy your time off'}"></label>`,
+        verb, status === 'approved' ? 'ok' : 'danger', async (b) => {
+          await api('POST', `/api/team/requests/${id}/decide`, { status, note: b.querySelector('#dn').value });
+          toast(`${status === 'approved' ? 'Approved' : 'Denied'} — ${item.user_name.split(' ')[0]} was notified`); showTab(); refreshCount();
+        });
+    };
+    v.querySelectorAll('[data-approve]').forEach((b) => { b.onclick = () => decide(b.dataset.approve, 'approved'); });
+    v.querySelectorAll('[data-deny]').forEach((b) => { b.onclick = () => decide(b.dataset.deny, 'denied'); });
+    v.querySelectorAll('[data-fixhours]').forEach((b) => { b.onclick = () => openPerson(Number(b.dataset.fixhours), b.dataset.day); });
+  }
+
+  /* ---------- views: owner ---------- */
+  async function viewPayroll(v) {
+    const d = await api('GET', `/api/admin/payroll${S.payWeek ? `?week=${S.payWeek}` : ''}`);
+    S.payWeek = d.week_start;
+    const rows = d.rows.filter((r) => !r.idle);
+    const t = d.totals;
+    v.innerHTML = `<h1>Payroll</h1>
+      <div class="weeknav"><button class="icon-btn" id="pv" aria-label="Previous week">${I.left}</button><div class="lbl">${esc(range(d.week_start, d.week_end))}<small>${d.is_current ? 'This week (still in progress)' : `Payday ${esc(fmtDay(d.pay_date))}`}</small></div><button class="icon-btn" id="nx" aria-label="Next week" ${d.is_current ? 'disabled style="opacity:.3"' : ''}>${I.right}</button></div>
+      <div class="split"><div class="card"><div class="stat-label">Left to pay</div><div class="stat-big num" style="font-size:30px">${money(t.unpaid)}</div><div class="muted small" style="margin-top:6px">${t.people - t.paid_count} of ${t.people} people</div></div>
+      <div class="card"><div class="stat-label">Week total</div><div class="stat-big num" style="font-size:30px">${money(t.gross)}</div><div class="muted small" style="margin-top:6px">${dec(t.hours)} hrs · ${money(t.paid)} sent</div></div></div>
+      ${d.is_current ? '<div class="banner" style="margin-top:10px"><div class="muted small">This week isn\'t over yet. Amounts will keep growing as people work. Usually you pay <b>last week</b> — tap ‹ to go back.</div></div>' : ''}
+      <h2>Tap the box once you've sent the money</h2>
+      ${rows.length ? `<div class="list">${rows.map((r) => `<div class="pay-row">
+        <button class="check ${r.payment ? 'done' : ''}" data-pay="${r.user_id}" aria-label="${r.payment ? 'Paid' : 'Mark paid'}" ${!r.payment && (r.open || r.gross <= 0) ? 'disabled' : ''}>${I.check}</button>
+        <div class="grow"><div style="font-weight:700">${esc(r.name)}</div><div class="muted small num">${dec(r.hours)} hrs${r.overtime ? ` · ${dec(r.overtime)} OT` : ''} · ${money(r.rate)}/hr</div>
+        ${r.payment ? `<div class="small" style="color:var(--on)">Sent ${esc(fmtDT(r.payment.paid_at))}</div>` : ''}
+        ${r.changed ? `<div class="changed">Hours changed after paying: now ${money(r.gross)} (${r.gross > r.payment.amount ? 'owes' : 'over by'} ${money(Math.abs(r.gross - r.payment.amount))})</div>` : ''}
+        ${r.open ? '<div class="changed">Still clocked in — clock them out in Team first</div>' : ''}</div>
+        <div class="r num" style="font-weight:800;font-size:17px">${money(r.payment ? r.payment.amount : r.gross)}</div></div>`).join('')}</div>` : '<div class="list"><div class="empty">No hours for this week.</div></div>'}
+      ${rows.length ? `<a class="btn ghost block" style="margin-top:14px" href="/api/admin/payroll.csv?week=${d.week_start}">Download spreadsheet (CSV)</a>` : ''}`;
+    v.querySelector('#pv').onclick = () => { S.payWeek = addDays(d.week_start, -7); showTab(); };
+    const nx = v.querySelector('#nx'); if (!nx.disabled) nx.onclick = () => { S.payWeek = addDays(d.week_start, 7); showTab(); };
+    v.querySelectorAll('[data-pay]').forEach((b) => {
+      b.onclick = () => {
+        const r = rows.find((x) => x.user_id === Number(b.dataset.pay));
+        if (r.payment) {
+          confirmSheet('Undo payment mark?', `<p class="muted" style="margin-top:0">${esc(r.name)} was marked paid ${money(r.payment.amount)} on ${esc(fmtDT(r.payment.paid_at))} by ${esc(r.payment.paid_by_name || 'you')}.</p><p class="muted">Only undo this if the money was <b>not</b> actually sent.</p>`, 'Undo — not paid', 'danger', async () => {
+            await api('POST', '/api/admin/payroll/unmark', { user_id: r.user_id, week_start: d.week_start }); toast('Payment mark removed'); showTab();
+          });
+        } else {
+          confirmSheet(`Pay ${r.name}?`, `<div class="card"><div class="kv"><span>Week</span><span>${esc(range(d.week_start, d.week_end))}</span></div><div class="kv"><span>Hours</span><span class="num">${dec(r.hours)}${r.overtime ? ` (${dec(r.overtime)} OT)` : ''}</span></div><div class="kv"><span>Amount</span><span class="num" style="font-weight:800">${money(r.gross)}</span></div></div>
+            <p class="muted small">Tap this only after you've sent the money. ${esc(r.name.split(' ')[0])} will get a notification that the payment is on its way.</p>`, `Yes, I sent ${money(r.gross)}`, 'ok', async () => {
+            await api('POST', '/api/admin/payroll/mark', { user_id: r.user_id, week_start: d.week_start, expected_amount: r.gross }); toast(`${r.name.split(' ')[0]} marked paid and notified`); showTab();
+          });
+        }
+      };
+    });
+  }
+
+  async function viewPeople(v) {
+    const d = await api('GET', '/api/admin/people');
+    const leadName = (id) => (d.leads.find((l) => l.id === id) || {}).name;
+    const active = d.people.filter((p) => p.active), off = d.people.filter((p) => !p.active);
+    const row = (p) => `<button class="item" data-edit="${p.id}"><span class="avatar">${esc(initials(p.name))}</span><div class="grow"><div class="t">${esc(p.name)}</div><div class="s">${p.role === 'supervisor' ? 'Lead / Supervisor' : 'Tech'}${p.lead_id ? ` · ${esc(leadName(p.lead_id) || '')}` : ''}</div></div><div class="r num" style="font-weight:700">${money(p.hourly_rate)}<span class="muted small">/hr</span></div>${chev}</button>`;
+    v.innerHTML = `<div class="row between"><h1>People</h1><button class="icon-btn" id="st" aria-label="Settings">${I.gear}</button></div>
+      <button class="btn block" id="add">+ Add a new tech</button>
+      <p class="muted small" style="margin:8px 0 0;text-align:center">You'll get a QR code. They scan it and create their own account.</p>
+      ${d.invites.length ? `<h2>Waiting to sign up</h2><div class="list">${d.invites.map((i) => `<div class="item"><div class="grow"><div class="t">${esc(i.name)}</div><div class="s">${i.role === 'supervisor' ? 'Lead' : 'Tech'} · ${money(i.hourly_rate)}/hr · link expires ${esc(fmtShort(ymdOf(i.expires_at)))}</div></div><button class="btn ghost sm" data-qr="${esc(i.token_hint)}">QR</button><button class="icon-btn" data-rv="${esc(i.token_hint)}" aria-label="Cancel invite">${I.x}</button></div>`).join('')}</div>` : ''}
+      <h2>Active · ${active.length}</h2>${active.length ? `<div class="list">${active.map(row).join('')}</div>` : '<div class="list"><div class="empty">No one has joined yet.</div></div>'}
+      ${off.length ? `<h2>Turned off · ${off.length}</h2><div class="list">${off.map(row).join('')}</div>` : ''}`;
+    v.querySelector('#add').onclick = () => personForm(null, d.leads);
+    v.querySelector('#st').onclick = openSettings;
+    v.querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => personForm(d.people.find((p) => p.id === Number(b.dataset.edit)), d.leads); });
+    v.querySelectorAll('[data-qr]').forEach((b) => { b.onclick = async () => { const r = await api('GET', `/api/admin/invites/${b.dataset.qr}/link`); showLink(`Invite for ${r.name}`, `Have ${esc(r.name.split(' ')[0])} scan this with their phone camera.`, r.url, r.name, r.qr_svg); }; });
+    v.querySelectorAll('[data-rv]').forEach((b) => { b.onclick = () => confirmSheet('Cancel this invite?', '<p class="muted">The QR code and link will stop working.</p>', 'Cancel invite', 'danger', async () => { await api('DELETE', `/api/admin/invites/${b.dataset.rv}`, {}); showTab(); }); });
+  }
+  function personForm(p, leads) {
+    const leadOpts = (sel) => `<option value="">— None —</option>${leads.filter((l) => !p || l.id !== p.id).map((l) => `<option value="${l.id}" ${sel === l.id ? 'selected' : ''}>${esc(l.name)}${l.role === 'owner' ? ' (owner)' : ''}</option>`).join('')}`;
+    openSheet(p ? p.name : 'Add a new tech', `<form><div class="form-err"></div>
+      <label class="f"><span>Name</span><input class="input" name="name" value="${esc(p?.name || '')}" required></label>
+      <label class="f"><span>Their pay rate ($ per hour)</span><input class="input" name="hourly_rate" type="number" step="0.01" min="0" inputmode="decimal" placeholder="e.g. 22.50" value="${p ? p.hourly_rate : ''}" required style="font-size:22px;font-weight:700"><div class="hint">Each person can have a different rate. Only you can see it; they see their own. ${p ? 'Changing it updates pay for weeks not yet marked paid.' : 'You can change it later.'}</div></label>
+      <label class="f"><span>Role</span><select class="input" name="role"><option value="tech" ${p?.role !== 'supervisor' ? 'selected' : ''}>Tech</option><option value="supervisor" ${p?.role === 'supervisor' ? 'selected' : ''}>Team lead / Supervisor</option></select></label>
+      <label class="f"><span>Reports to (team lead)</span><select class="input" name="lead_id">${leadOpts(p?.lead_id)}</select><div class="hint">Their time-off requests go to this person. Leads can approve and fix hours for techs.</div></label>
+      ${p ? `<label class="f"><span>Phone</span><input class="input" name="phone" type="tel" value="${esc(p.phone || '')}"></label><label class="f"><span>Email</span><input class="input" name="email" type="email" value="${esc(p.email || '')}"></label>
+      <label class="f row" style="gap:10px"><input type="checkbox" name="active" ${p.active ? 'checked' : ''} style="width:20px;height:20px"><span style="margin:0;color:var(--text)">Account active (uncheck when someone leaves)</span></label>` : ''}
+      <button class="btn block" type="submit">${p ? 'Save' : 'Create QR invite'}</button>
+      ${p ? '<button type="button" class="btn ghost block" id="rs" style="margin-top:10px">Send password reset link</button>' : ''}</form>`, (b) => {
+      const f = b.querySelector('form');
+      bindForm(f, async (d) => {
+        if (p) {
+          await api('PUT', `/api/admin/people/${p.id}`, { ...d, lead_id: d.lead_id || null, active: !!f.active.checked });
+          closeSheet(); toast('Saved'); showTab();
+        } else {
+          const r = await api('POST', '/api/admin/invites', { ...d, lead_id: d.lead_id || null });
+          showTab();
+          showLink(`Invite for ${d.name}`, `<b style="color:var(--text)">${money(d.hourly_rate)}/hr</b> is saved for ${esc(d.name.split(' ')[0])}. Have them scan this with their phone camera, or text them the link. It works for 14 days, one time.`, r.url, d.name, r.qr_svg);
+        }
+      });
+      const rs = b.querySelector('#rs');
+      if (rs) rs.onclick = async () => { const r = await api('POST', `/api/admin/people/${p.id}/reset`, {}); showLink(`Reset for ${r.name}`, 'They scan this to set a new password. Works for 2 days, one time.', r.url, r.name, r.qr_svg); };
+    });
+  }
+  async function openSettings() {
+    openSheet('Settings', '<div class="spin"></div>');
+    const s = await api('GET', '/api/admin/settings');
+    const b = $sheet.querySelector('.sheet-body'); if (!b) return;
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const opts = (sel) => days.map((d, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${d}</option>`).join('');
+    b.innerHTML = `<form><div class="form-err"></div>
+      <label class="f"><span>Company name</span><input class="input" name="company_name" value="${esc(s.company_name)}"></label>
+      <div class="split"><label class="f"><span>Week starts</span><select class="input" name="week_start_day">${opts(s.week_start_day)}</select></label>
+      <label class="f"><span>Payday</span><select class="input" name="payday_weekday">${opts(s.payday_weekday)}</select></label></div>
+      <p class="hint" style="margin:-6px 0 14px">Pay goes out on the first payday after the week ends.</p>
+      <label class="f row" style="gap:10px"><input type="checkbox" name="ot_enabled" id="ote" ${s.ot_enabled ? 'checked' : ''} style="width:20px;height:20px"><span style="margin:0;color:var(--text)">Pay overtime</span></label>
+      <div class="split" id="otf" ${s.ot_enabled ? '' : 'hidden'}><label class="f"><span>Overtime after (hrs/week)</span><input class="input" name="ot_threshold" type="number" step="0.5" value="${s.ot_threshold}"></label>
+      <label class="f"><span>Overtime rate (×)</span><input class="input" name="ot_multiplier" type="number" step="0.1" value="${s.ot_multiplier}"></label></div>
+      <label class="f"><span>Max shift length (hours)</span><input class="input" name="max_shift_hours" type="number" min="0" max="24" step="0.25" value="${s.max_shift_hours}"><div class="hint">If someone forgets to clock out, or clocks out late, the shift is cut to this length and their lead is told. 0 = no limit.</div></label>
+      <label class="f"><span>Days of notice for time off</span><input class="input" name="timeoff_notice_days" type="number" min="0" max="90" value="${s.timeoff_notice_days}"></label>
+      <label class="f"><span>Time zone</span><input class="input" name="timezone" value="${esc(s.timezone)}"><div class="hint">For example America/Chicago, America/New_York</div></label>
+      <button class="btn block" type="submit">Save settings</button></form>
+      <a class="btn ghost block" style="margin-top:10px" href="/api/admin/backup">Download a backup of all data</a>
+      <p class="hint" style="text-align:center">Do this once a week and keep the file somewhere safe.</p>`;
+    b.querySelector('#ote').onchange = (e) => { b.querySelector('#otf').hidden = !e.target.checked; };
+    bindForm(b.querySelector('form'), async (d) => { d.ot_enabled = b.querySelector('#ote').checked; const r = await api('PUT', '/api/admin/settings', d); S.boot.settings = { ...S.boot.settings, ...r }; S.tz = r.timezone; closeSheet(); toast('Settings saved'); renderShell(); });
+  }
+
+  window.VT_REBOOT = () => { document.getElementById('toast').className = ''; S.tab = null; S.payWeek = null; S.apprStatus = 'pending'; closeSheet(); boot(); };
+  window.VT_TOAST = toast;
+  window.VT_SHEET = openSheet;
+  if ('serviceWorker' in navigator && !window.VT_DEMO) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  boot();
+})();
+
+</script>
+<script>
+
+(() => {
+  const sel = document.getElementById('demo-who');
+  const inv = document.getElementById('demo-inv');
+  const rst = document.getElementById('demo-reset');
+  const order = { owner: 0, supervisor: 1, tech: 2 }, roleTag = { owner: 'Owner', supervisor: 'Lead', tech: 'Tech' };
+  const clean = (t) => String(t).replace(/[<>&"]/g, '');
+  function fill() {
+    const cur = window.VT_DEMO.current();
+    const us = window.VT_DEMO.users().sort((a, b) => (order[a.role] - order[b.role]) || a.name.localeCompare(b.name));
+    const html = (cur ? '' : '<option value="">Signed out</option>') + us.map((u) => '<option value="' + u.id + '"' + (u.id === cur ? ' selected' : '') + '>' + clean(u.name) + ' — ' + roleTag[u.role] + '</option>').join('');
+    if (sel.dataset.h !== html) { sel.innerHTML = html; sel.dataset.h = html; }
+    inv.hidden = !window.VT_DEMO.lastInvite();
+  }
+  sel.onchange = () => { if (!sel.value) return; window.VT_JOIN = null; window.VT_DEMO.switchTo(sel.value); window.VT_REBOOT(); fill(); };
+  let armed = null;
+  rst.onclick = () => {
+    if (!armed) { rst.textContent = 'Tap again'; rst.classList.add('hot'); armed = setTimeout(() => { armed = null; rst.textContent = 'Reset'; rst.classList.remove('hot'); }, 3000); return; }
+    clearTimeout(armed); armed = null; rst.textContent = 'Reset'; rst.classList.remove('hot');
+    window.VT_DEMO.reset(); window.VT_JOIN = null; window.VT_REBOOT(); fill(); window.VT_TOAST('Demo reset to the sample crew');
+  };
+  inv.onclick = () => { const t = window.VT_DEMO.lastInvite(); if (!t) return; window.VT_JOIN = t; window.VT_REBOOT(); };
+  setInterval(fill, 800); fill();
+  const sites = [[41.8781, -87.6298], [41.9742, -87.9073], [41.7508, -87.7124], [42.0451, -87.6877]];
+  window.VT_FAKE_LOCATION = () => { const s = sites[Math.floor(Math.random() * sites.length)]; return { lat: s[0] + Math.random() * 0.003, lng: s[1] + Math.random() * 0.003, acc: 10 }; };
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="/api/"]');
+    if (!a) return;
+    e.preventDefault();
+    if (a.getAttribute('href').startsWith('/api/admin/payroll.csv')) {
+      const week = new URLSearchParams(a.getAttribute('href').split('?')[1] || '').get('week');
+      const f = window.VT_DEMO.csv(week);
+      window.VT_SHEET(f.name, '<p class="muted" style="margin-top:0">In the real app this downloads as a spreadsheet you can open in Excel. Here is what is inside:</p><pre id="csvp" style="background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;font-size:12px;overflow-x:auto;white-space:pre;user-select:all">' + f.text.replace(/[<&]/g, (c) => c === '<' ? '&lt;' : '&amp;') + '</pre><button class="btn ghost block" id="csvc">Copy</button>', (b) => {
+        b.querySelector('#csvc').onclick = () => { navigator.clipboard.writeText(f.text).then(() => window.VT_TOAST('Copied'), () => { const r = document.createRange(); r.selectNodeContents(b.querySelector('#csvp')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); window.VT_TOAST('Selected — copy it'); }); };
+      });
+    } else window.VT_TOAST('In the real app this downloads a backup file');
+  }, true);
+})();
+</script>

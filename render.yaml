@@ -1,0 +1,22 @@
+# Render blueprint: Render reads this and sets up the app automatically.
+services:
+  - type: web
+    name: vaytech-time
+    runtime: node
+    plan: starter            # a paid plan is required for the disk (the database lives there)
+    region: ohio
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: /data
+      - key: PUBLIC_URL
+        value: https://time.vaytech.org   # used in QR invite links
+    disk:
+      name: vaytech-data
+      mountPath: /data
+      sizeGB: 1
