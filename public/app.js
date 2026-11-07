@@ -301,8 +301,9 @@
     const t = today();
     return `<div class="bars">${w.days.map((d) => `<div class="bar"><b>${d.hours ? dec(d.hours).replace(/\.00$/, '') : ''}</b><i class="${d.hours ? '' : 'zero'} ${d.date === t ? 'today' : ''}" style="height:${Math.max(3, (d.hours / max) * 70)}px"></i><span>${dowLetter(d.date)}</span></div>`).join('')}</div>`;
   }
+  const etaText = (p) => p.eta ? (p.eta <= today() ? 'Arrived ' : 'Arriving ') + fmtDay(p.eta) : 'Sent ' + fmtShort(ymdOf(p.paid_at));
   function payStatus(w) {
-    if (w.payment) return `<span class="pill on">${I.check.replace('<svg', '<svg width="13" height="13"')} Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}</span>`;
+    if (w.payment) return `<span class="pill on">${I.check.replace('<svg', '<svg width="13" height="13"')} ${esc(etaText(w.payment))}</span>`;
     return `<span class="pill">Pays ${esc(fmtDay(w.pay_date))}</span>`;
   }
   function shiftList(entries, opts = {}) {
@@ -376,7 +377,8 @@
     $sheet.querySelector('.sheet-head h3').textContent = range(w.week_start, w.week_end);
     b.innerHTML = `<div class="card"><div class="kv"><span>Total hours</span><span class="num">${dec(w.hours)}</span></div><div class="kv"><span>Regular</span><span class="num">${dec(w.regular)}</span></div><div class="kv"><span>Overtime</span><span class="num">${dec(w.overtime)}</span></div>
       <div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div>
-      <div class="kv"><span>Deposit</span><span>${w.payment ? `Sent ${esc(fmtDT(w.payment.paid_at))}` : esc(fmtDay(w.pay_date))}</span></div></div>
+      <div class="kv"><span>Deposit</span><span>${w.payment ? `Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}` : `Pays ${esc(fmtDay(w.pay_date))}`}</span></div>
+      ${w.payment && w.payment.eta ? `<div class="kv"><span>Arrives</span><span style="font-weight:700;color:var(--on)">${esc(fmtDay(w.payment.eta))}</span></div>` : ''}</div>
       <div class="card">${weekBars(w)}</div><h2>Shifts</h2>${shiftList(w.entries)}`;
   }
 
@@ -460,7 +462,7 @@
     $sheet.querySelector('.sheet-head h3').textContent = d.person.name;
     b.innerHTML = `<div class="weeknav"><button class="icon-btn" id="pv" aria-label="Previous week">${I.left}</button><div class="lbl">${esc(range(w.week_start, w.week_end))}<small>${w.week_start <= today() && today() <= w.week_end ? 'This week' : `Pays ${esc(fmtDay(w.pay_date))}`}</small></div><button class="icon-btn" id="nx" aria-label="Next week" ${today() <= w.week_end ? 'disabled style="opacity:.3"' : ''}>${I.right}</button></div>
       <div class="card"><div class="kv"><span>Hours</span><span class="num">${dec(w.hours)}${w.overtime ? ` <span style="color:var(--warn)">(${dec(w.overtime)} OT)</span>` : ''}</span></div>
-      ${isOwner ? `<div class="kv"><span>Rate</span><span class="num">${money(w.rate)}/hr</span></div><div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div><div class="kv"><span>Payment</span><span>${w.payment ? `<span class="pill on">Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}</span>` : 'Not sent'}</span></div>` : ''}
+      ${isOwner ? `<div class="kv"><span>Rate</span><span class="num">${money(w.rate)}/hr</span></div><div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div><div class="kv"><span>Payment</span><span>${w.payment ? `<span class="pill on">${esc(etaText(w.payment))}</span>` : 'Not sent'}</span></div>` : ''}
       ${d.person.phone ? `<div class="kv"><span>Phone</span><a href="tel:${esc(d.person.phone)}">${esc(d.person.phone)}</a></div>` : ''}</div>
       ${isOwner && w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01 ? `<div class="err" style="background:var(--warn-bg);color:var(--warn)">Hours changed after this week was paid. Paid ${money(w.payment.amount)}, now ${money(w.gross)}.</div>` : ''}
       <div class="row between" style="margin:22px 0 10px"><h2 style="margin:0">Shifts</h2><button class="btn sm" id="add">+ Add shift</button></div>
@@ -533,7 +535,7 @@
       ${rows.length ? `<div class="list">${rows.map((r) => `<div class="pay-row">
         <button class="check ${r.payment ? 'done' : ''}" data-pay="${r.user_id}" aria-label="${r.payment ? 'Paid' : 'Mark paid'}" ${!r.payment && (r.open || r.gross <= 0) ? 'disabled' : ''}>${I.check}</button>
         <div class="grow"><div style="font-weight:700">${esc(r.name)}</div><div class="muted small num">${dec(r.hours)} hrs${r.overtime ? ` · ${dec(r.overtime)} OT` : ''} · ${money(r.rate)}/hr</div>
-        ${r.payment ? `<div class="small" style="color:var(--on)">Sent ${esc(fmtDT(r.payment.paid_at))}</div>` : ''}
+        ${r.payment ? `<div class="small" style="color:var(--on)">Sent ${esc(fmtShort(ymdOf(r.payment.paid_at)))}${r.payment.eta ? ` · arrives ${esc(fmtDay(r.payment.eta))}` : ''}</div>` : ''}
         ${r.changed ? `<div class="changed">Hours changed after paying: now ${money(r.gross)} (${r.gross > r.payment.amount ? 'owes' : 'over by'} ${money(Math.abs(r.gross - r.payment.amount))})</div>` : ''}
         ${r.open ? '<div class="changed">Still clocked in — clock them out in Team first</div>' : ''}</div>
         <div class="r num" style="font-weight:800;font-size:17px">${money(r.payment ? r.payment.amount : r.gross)}</div></div>`).join('')}</div>` : '<div class="list"><div class="empty">No hours for this week.</div></div>'}
@@ -543,18 +545,45 @@
     v.querySelectorAll('[data-pay]').forEach((b) => {
       b.onclick = () => {
         const r = rows.find((x) => x.user_id === Number(b.dataset.pay));
+        const first = r.name.split(' ')[0];
+        const etaInput = (val) => `<label class="f"><span>When will the money arrive?</span><input class="input" type="date" id="eta" value="${val}" min="${today()}" max="${addDays(today(), 30)}" required><div class="hint">${esc(first)} sees this date on their pay screen and in the notification.</div></label>`;
         if (r.payment) {
-          confirmSheet('Undo payment mark?', `<p class="muted" style="margin-top:0">${esc(r.name)} was marked paid ${money(r.payment.amount)} on ${esc(fmtDT(r.payment.paid_at))} by ${esc(r.payment.paid_by_name || 'you')}.</p><p class="muted">Only undo this if the money was <b>not</b> actually sent.</p>`, 'Undo — not paid', 'danger', async () => {
-            await api('POST', '/api/admin/payroll/unmark', { user_id: r.user_id, week_start: d.week_start }); toast('Payment mark removed'); showTab();
+          openSheet(r.name, `<div class="card"><div class="kv"><span>Paid</span><span class="num" style="font-weight:800">${money(r.payment.amount)}</span></div><div class="kv"><span>Sent</span><span>${esc(fmtDT(r.payment.paid_at))}</span></div><div class="kv"><span>Marked by</span><span>${esc(r.payment.paid_by_name || 'you')}</span></div></div>
+            <h2>Arrival date</h2>${etaInput(r.payment.eta && r.payment.eta >= today() ? r.payment.eta : defaultEta())}
+            <div id="pe-err"></div><button class="btn block" id="pe-save">Update arrival date</button>
+            <h2>Not actually sent?</h2><button class="btn danger block" id="pe-undo">Undo — mark as not paid</button>`, (bd) => {
+            const err = (m) => { bd.querySelector('#pe-err').innerHTML = `<div class="err">${esc(m)}</div>`; };
+            bd.querySelector('#pe-save').onclick = async (e) => {
+              e.target.disabled = true;
+              try { await api('POST', '/api/admin/payroll/eta', { user_id: r.user_id, week_start: d.week_start, eta: bd.querySelector('#eta').value }); closeSheet(); toast(`Arrival date updated — ${first} was notified`); showTab(); }
+              catch (x) { err(x.message); e.target.disabled = false; }
+            };
+            let armed = false;
+            bd.querySelector('#pe-undo').onclick = async (e) => {
+              if (!armed) { armed = true; e.target.textContent = 'Tap again to undo'; return; }
+              e.target.disabled = true;
+              try { await api('POST', '/api/admin/payroll/unmark', { user_id: r.user_id, week_start: d.week_start }); closeSheet(); toast('Payment mark removed'); showTab(); }
+              catch (x) { err(x.message); e.target.disabled = false; }
+            };
           });
         } else {
           confirmSheet(`Pay ${r.name}?`, `<div class="card"><div class="kv"><span>Week</span><span>${esc(range(d.week_start, d.week_end))}</span></div><div class="kv"><span>Hours</span><span class="num">${dec(r.hours)}${r.overtime ? ` (${dec(r.overtime)} OT)` : ''}</span></div><div class="kv"><span>Amount</span><span class="num" style="font-weight:800">${money(r.gross)}</span></div></div>
-            <p class="muted small">Tap this only after you've sent the money. ${esc(r.name.split(' ')[0])} will get a notification that the payment is on its way.</p>`, `Yes, I sent ${money(r.gross)}`, 'ok', async () => {
-            await api('POST', '/api/admin/payroll/mark', { user_id: r.user_id, week_start: d.week_start, expected_amount: r.gross }); toast(`${r.name.split(' ')[0]} marked paid and notified`); showTab();
+            ${etaInput(defaultEta())}
+            <p class="muted small">Tap this only after you've sent the money. ${esc(first)} will get a notification with the amount and the arrival date.</p>`, `Yes, I sent ${money(r.gross)}`, 'ok', async (bd) => {
+            const eta = bd.querySelector('#eta').value;
+            await api('POST', '/api/admin/payroll/mark', { user_id: r.user_id, week_start: d.week_start, expected_amount: r.gross, eta });
+            S.lastEta = eta; toast(`${first} marked paid — arriving ${fmtDay(eta)}`); showTab();
           });
         }
       };
     });
+  }
+
+  function defaultEta() {
+    if (S.lastEta && S.lastEta >= today()) return S.lastEta;
+    let d = addDays(today(), 1);
+    while ([0, 6].includes(ymdParts(d).getUTCDay())) d = addDays(d, 1);
+    return d;
   }
 
   async function viewPeople(v) {

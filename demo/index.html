@@ -430,7 +430,7 @@ function parseLocalDateTime(str, tz) {
 }
 
 
-  const KEY = 'vt_demo_v3';
+  const KEY = 'vt_demo_v4';
   const round2 = (n) => Math.round(n * 100) / 100;
   const DAY = 86400000, HOUR = 3600000;
 
@@ -444,7 +444,7 @@ function parseLocalDateTime(str, tz) {
     const tz = 'America/Chicago';
     D = {
       seq: 100, session: null, ts: Date.now(),
-      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 1, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: 5, timeoff_notice_days: 14, max_shift_hours: 12 },
+      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 0, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: 5, timeoff_notice_days: 14, max_shift_hours: 12 },
       users: [], invites: [], entries: [], edits: [], requests: [], payments: [], notifications: []
     };
     const s = D.settings;
@@ -492,8 +492,9 @@ function parseLocalDateTime(str, tz) {
         const sum = weekSummary(u, ws, s);
         if (sum.gross > 0) {
           const paidAt = at(payDateFor(ws, s), 9, 30);
-          D.payments.push({ id: nextId(), user_id: u.id, week_start: ws, hours: sum.hours, ot_hours: 0, rate: u.hourly_rate, amount: sum.gross, paid_at: paidAt, paid_by: owner.id });
-          notifyAt(u.id, 'Payment sent', `Your pay of ${money(sum.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${sum.hours} hrs) has been sent. You will receive it shortly.`, paidAt);
+          const eta = addDays(payDateFor(ws, s), 3);
+          D.payments.push({ id: nextId(), user_id: u.id, week_start: ws, hours: sum.hours, ot_hours: 0, rate: u.hourly_rate, amount: sum.gross, paid_at: paidAt, paid_by: owner.id, eta });
+          notifyAt(u.id, 'Payment sent', `Your pay of ${money(sum.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${sum.hours} hrs) has been sent. It should arrive on ${niceDate(eta)}.`, paidAt);
         }
       }
     }
@@ -601,7 +602,7 @@ function parseLocalDateTime(str, tz) {
 
   route('GET', '/api/me/dashboard', { auth: true }, ({ user }) => {
     const s = S(), ws = currentWeekStart(s), week = weekSummary(user, ws, s), history = [];
-    for (let i = 1; i <= 8; i++) { const w = weekSummary(user, addDays(ws, -7 * i), s); if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at } }); }
+    for (let i = 1; i <= 8; i++) { const w = weekSummary(user, addDays(ws, -7 * i), s); if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at, eta: w.payment.eta } }); }
     return { open: openEntry(user.id) || null, week, history, settings: { ot_enabled: s.ot_enabled, ot_threshold: s.ot_threshold, ot_multiplier: s.ot_multiplier, max_shift_hours: s.max_shift_hours } };
   });
   route('GET', '/api/me/week', { auth: true }, ({ user, query }) => { const s = S(); return weekSummary(user, parseYmd(query.start) ? weekStartOf(query.start, s) : currentWeekStart(s), s); });
@@ -771,7 +772,7 @@ function parseLocalDateTime(str, tz) {
       if (!u.active && w.hours === 0 && !w.payment) continue;
       if (w.hours === 0 && !w.payment) { rows.push({ user_id: u.id, name: u.name, idle: true }); continue; }
       rows.push({ user_id: u.id, name: u.name, role: u.role, rate: u.hourly_rate, hours: w.hours, regular: w.regular, overtime: w.overtime, gross: w.gross, open: w.open,
-        payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name }, changed: !!(w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01) });
+        payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name, eta: w.payment.eta }, changed: !!(w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01) });
     }
     return rows;
   }
@@ -789,8 +790,24 @@ function parseLocalDateTime(str, tz) {
     if (w.open) fail(400, `${t.name} is still clocked in for this week. Clock them out first.`);
     if (body.expected_amount !== undefined && Math.abs(Number(body.expected_amount) - w.gross) >= 0.01) fail(409, 'Hours changed while you were looking. Refresh and check again.');
     if (D.payments.some((p) => p.user_id === t.id && p.week_start === ws)) fail(409, `${t.name} is already marked paid for this week.`);
-    D.payments.push({ id: nextId(), user_id: t.id, week_start: ws, hours: w.hours, ot_hours: w.overtime, rate: t.hourly_rate, amount: w.gross, paid_at: Date.now(), paid_by: user.id });
-    notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. You will receive it shortly.`);
+    const eta = checkEta(body.eta, s);
+    D.payments.push({ id: nextId(), user_id: t.id, week_start: ws, hours: w.hours, ot_hours: w.overtime, rate: t.hourly_rate, amount: w.gross, paid_at: Date.now(), paid_by: user.id, eta });
+    notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. It should arrive ${etaWords(eta, s)}.`);
+    return { ok: true };
+  });
+  function checkEta(v, s) {
+    if (!parseYmd(v)) fail(400, 'Pick the date the money will arrive');
+    const today = ymdOf(Date.now(), s.timezone);
+    if (v < today) fail(400, 'The arrival date cannot be in the past');
+    if (v > addDays(today, 30)) fail(400, 'Pick an arrival date within the next 30 days');
+    return v;
+  }
+  function etaWords(eta, s) { const today = ymdOf(Date.now(), s.timezone); return eta === today ? 'today' : eta === addDays(today, 1) ? `tomorrow, ${niceDate(eta)}` : `on ${niceDate(eta)}`; }
+  route('POST', '/api/admin/payroll/eta', { auth: true, roles: ['owner'] }, ({ body }) => {
+    const s = S(), ws = weekStartOf(body.week_start, s);
+    const p = D.payments.find((x) => x.user_id === Number(body.user_id) && x.week_start === ws); if (!p) fail(404, 'This week is not marked paid yet');
+    const eta = checkEta(body.eta, s); if (eta === p.eta) return { ok: true };
+    p.eta = eta; notify(p.user_id, 'Pay arrival date changed', `Your pay of ${money(p.amount)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} should now arrive ${etaWords(eta, s)}.`);
     return { ok: true };
   });
   route('POST', '/api/admin/payroll/unmark', { auth: true, roles: ['owner'] }, ({ body }) => {
@@ -1165,8 +1182,9 @@ function parseLocalDateTime(str, tz) {
     const t = today();
     return `<div class="bars">${w.days.map((d) => `<div class="bar"><b>${d.hours ? dec(d.hours).replace(/\.00$/, '') : ''}</b><i class="${d.hours ? '' : 'zero'} ${d.date === t ? 'today' : ''}" style="height:${Math.max(3, (d.hours / max) * 70)}px"></i><span>${dowLetter(d.date)}</span></div>`).join('')}</div>`;
   }
+  const etaText = (p) => p.eta ? (p.eta <= today() ? 'Arrived ' : 'Arriving ') + fmtDay(p.eta) : 'Sent ' + fmtShort(ymdOf(p.paid_at));
   function payStatus(w) {
-    if (w.payment) return `<span class="pill on">${I.check.replace('<svg', '<svg width="13" height="13"')} Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}</span>`;
+    if (w.payment) return `<span class="pill on">${I.check.replace('<svg', '<svg width="13" height="13"')} ${esc(etaText(w.payment))}</span>`;
     return `<span class="pill">Pays ${esc(fmtDay(w.pay_date))}</span>`;
   }
   function shiftList(entries, opts = {}) {
@@ -1240,7 +1258,8 @@ function parseLocalDateTime(str, tz) {
     $sheet.querySelector('.sheet-head h3').textContent = range(w.week_start, w.week_end);
     b.innerHTML = `<div class="card"><div class="kv"><span>Total hours</span><span class="num">${dec(w.hours)}</span></div><div class="kv"><span>Regular</span><span class="num">${dec(w.regular)}</span></div><div class="kv"><span>Overtime</span><span class="num">${dec(w.overtime)}</span></div>
       <div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div>
-      <div class="kv"><span>Deposit</span><span>${w.payment ? `Sent ${esc(fmtDT(w.payment.paid_at))}` : esc(fmtDay(w.pay_date))}</span></div></div>
+      <div class="kv"><span>Deposit</span><span>${w.payment ? `Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}` : `Pays ${esc(fmtDay(w.pay_date))}`}</span></div>
+      ${w.payment && w.payment.eta ? `<div class="kv"><span>Arrives</span><span style="font-weight:700;color:var(--on)">${esc(fmtDay(w.payment.eta))}</span></div>` : ''}</div>
       <div class="card">${weekBars(w)}</div><h2>Shifts</h2>${shiftList(w.entries)}`;
   }
 
@@ -1324,7 +1343,7 @@ function parseLocalDateTime(str, tz) {
     $sheet.querySelector('.sheet-head h3').textContent = d.person.name;
     b.innerHTML = `<div class="weeknav"><button class="icon-btn" id="pv" aria-label="Previous week">${I.left}</button><div class="lbl">${esc(range(w.week_start, w.week_end))}<small>${w.week_start <= today() && today() <= w.week_end ? 'This week' : `Pays ${esc(fmtDay(w.pay_date))}`}</small></div><button class="icon-btn" id="nx" aria-label="Next week" ${today() <= w.week_end ? 'disabled style="opacity:.3"' : ''}>${I.right}</button></div>
       <div class="card"><div class="kv"><span>Hours</span><span class="num">${dec(w.hours)}${w.overtime ? ` <span style="color:var(--warn)">(${dec(w.overtime)} OT)</span>` : ''}</span></div>
-      ${isOwner ? `<div class="kv"><span>Rate</span><span class="num">${money(w.rate)}/hr</span></div><div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div><div class="kv"><span>Payment</span><span>${w.payment ? `<span class="pill on">Sent ${esc(fmtShort(ymdOf(w.payment.paid_at)))}</span>` : 'Not sent'}</span></div>` : ''}
+      ${isOwner ? `<div class="kv"><span>Rate</span><span class="num">${money(w.rate)}/hr</span></div><div class="kv"><span>Gross pay</span><span class="num" style="font-weight:700">${money(w.gross)}</span></div><div class="kv"><span>Payment</span><span>${w.payment ? `<span class="pill on">${esc(etaText(w.payment))}</span>` : 'Not sent'}</span></div>` : ''}
       ${d.person.phone ? `<div class="kv"><span>Phone</span><a href="tel:${esc(d.person.phone)}">${esc(d.person.phone)}</a></div>` : ''}</div>
       ${isOwner && w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01 ? `<div class="err" style="background:var(--warn-bg);color:var(--warn)">Hours changed after this week was paid. Paid ${money(w.payment.amount)}, now ${money(w.gross)}.</div>` : ''}
       <div class="row between" style="margin:22px 0 10px"><h2 style="margin:0">Shifts</h2><button class="btn sm" id="add">+ Add shift</button></div>
@@ -1397,7 +1416,7 @@ function parseLocalDateTime(str, tz) {
       ${rows.length ? `<div class="list">${rows.map((r) => `<div class="pay-row">
         <button class="check ${r.payment ? 'done' : ''}" data-pay="${r.user_id}" aria-label="${r.payment ? 'Paid' : 'Mark paid'}" ${!r.payment && (r.open || r.gross <= 0) ? 'disabled' : ''}>${I.check}</button>
         <div class="grow"><div style="font-weight:700">${esc(r.name)}</div><div class="muted small num">${dec(r.hours)} hrs${r.overtime ? ` · ${dec(r.overtime)} OT` : ''} · ${money(r.rate)}/hr</div>
-        ${r.payment ? `<div class="small" style="color:var(--on)">Sent ${esc(fmtDT(r.payment.paid_at))}</div>` : ''}
+        ${r.payment ? `<div class="small" style="color:var(--on)">Sent ${esc(fmtShort(ymdOf(r.payment.paid_at)))}${r.payment.eta ? ` · arrives ${esc(fmtDay(r.payment.eta))}` : ''}</div>` : ''}
         ${r.changed ? `<div class="changed">Hours changed after paying: now ${money(r.gross)} (${r.gross > r.payment.amount ? 'owes' : 'over by'} ${money(Math.abs(r.gross - r.payment.amount))})</div>` : ''}
         ${r.open ? '<div class="changed">Still clocked in — clock them out in Team first</div>' : ''}</div>
         <div class="r num" style="font-weight:800;font-size:17px">${money(r.payment ? r.payment.amount : r.gross)}</div></div>`).join('')}</div>` : '<div class="list"><div class="empty">No hours for this week.</div></div>'}
@@ -1407,18 +1426,45 @@ function parseLocalDateTime(str, tz) {
     v.querySelectorAll('[data-pay]').forEach((b) => {
       b.onclick = () => {
         const r = rows.find((x) => x.user_id === Number(b.dataset.pay));
+        const first = r.name.split(' ')[0];
+        const etaInput = (val) => `<label class="f"><span>When will the money arrive?</span><input class="input" type="date" id="eta" value="${val}" min="${today()}" max="${addDays(today(), 30)}" required><div class="hint">${esc(first)} sees this date on their pay screen and in the notification.</div></label>`;
         if (r.payment) {
-          confirmSheet('Undo payment mark?', `<p class="muted" style="margin-top:0">${esc(r.name)} was marked paid ${money(r.payment.amount)} on ${esc(fmtDT(r.payment.paid_at))} by ${esc(r.payment.paid_by_name || 'you')}.</p><p class="muted">Only undo this if the money was <b>not</b> actually sent.</p>`, 'Undo — not paid', 'danger', async () => {
-            await api('POST', '/api/admin/payroll/unmark', { user_id: r.user_id, week_start: d.week_start }); toast('Payment mark removed'); showTab();
+          openSheet(r.name, `<div class="card"><div class="kv"><span>Paid</span><span class="num" style="font-weight:800">${money(r.payment.amount)}</span></div><div class="kv"><span>Sent</span><span>${esc(fmtDT(r.payment.paid_at))}</span></div><div class="kv"><span>Marked by</span><span>${esc(r.payment.paid_by_name || 'you')}</span></div></div>
+            <h2>Arrival date</h2>${etaInput(r.payment.eta && r.payment.eta >= today() ? r.payment.eta : defaultEta())}
+            <div id="pe-err"></div><button class="btn block" id="pe-save">Update arrival date</button>
+            <h2>Not actually sent?</h2><button class="btn danger block" id="pe-undo">Undo — mark as not paid</button>`, (bd) => {
+            const err = (m) => { bd.querySelector('#pe-err').innerHTML = `<div class="err">${esc(m)}</div>`; };
+            bd.querySelector('#pe-save').onclick = async (e) => {
+              e.target.disabled = true;
+              try { await api('POST', '/api/admin/payroll/eta', { user_id: r.user_id, week_start: d.week_start, eta: bd.querySelector('#eta').value }); closeSheet(); toast(`Arrival date updated — ${first} was notified`); showTab(); }
+              catch (x) { err(x.message); e.target.disabled = false; }
+            };
+            let armed = false;
+            bd.querySelector('#pe-undo').onclick = async (e) => {
+              if (!armed) { armed = true; e.target.textContent = 'Tap again to undo'; return; }
+              e.target.disabled = true;
+              try { await api('POST', '/api/admin/payroll/unmark', { user_id: r.user_id, week_start: d.week_start }); closeSheet(); toast('Payment mark removed'); showTab(); }
+              catch (x) { err(x.message); e.target.disabled = false; }
+            };
           });
         } else {
           confirmSheet(`Pay ${r.name}?`, `<div class="card"><div class="kv"><span>Week</span><span>${esc(range(d.week_start, d.week_end))}</span></div><div class="kv"><span>Hours</span><span class="num">${dec(r.hours)}${r.overtime ? ` (${dec(r.overtime)} OT)` : ''}</span></div><div class="kv"><span>Amount</span><span class="num" style="font-weight:800">${money(r.gross)}</span></div></div>
-            <p class="muted small">Tap this only after you've sent the money. ${esc(r.name.split(' ')[0])} will get a notification that the payment is on its way.</p>`, `Yes, I sent ${money(r.gross)}`, 'ok', async () => {
-            await api('POST', '/api/admin/payroll/mark', { user_id: r.user_id, week_start: d.week_start, expected_amount: r.gross }); toast(`${r.name.split(' ')[0]} marked paid and notified`); showTab();
+            ${etaInput(defaultEta())}
+            <p class="muted small">Tap this only after you've sent the money. ${esc(first)} will get a notification with the amount and the arrival date.</p>`, `Yes, I sent ${money(r.gross)}`, 'ok', async (bd) => {
+            const eta = bd.querySelector('#eta').value;
+            await api('POST', '/api/admin/payroll/mark', { user_id: r.user_id, week_start: d.week_start, expected_amount: r.gross, eta });
+            S.lastEta = eta; toast(`${first} marked paid — arriving ${fmtDay(eta)}`); showTab();
           });
         }
       };
     });
+  }
+
+  function defaultEta() {
+    if (S.lastEta && S.lastEta >= today()) return S.lastEta;
+    let d = addDays(today(), 1);
+    while ([0, 6].includes(ymdParts(d).getUTCDay())) d = addDays(d, 1);
+    return d;
   }
 
   async function viewPeople(v) {

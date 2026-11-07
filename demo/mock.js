@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   /*@@TZ_HELPERS@@*/
-  const KEY = 'vt_demo_v3';
+  const KEY = 'vt_demo_v4';
   const round2 = (n) => Math.round(n * 100) / 100;
   const DAY = 86400000, HOUR = 3600000;
 
@@ -17,7 +17,7 @@
     const tz = 'America/Chicago';
     D = {
       seq: 100, session: null, ts: Date.now(),
-      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 1, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: 5, timeoff_notice_days: 14, max_shift_hours: 12 },
+      settings: { company_name: 'VayTech', timezone: tz, week_start_day: 0, ot_enabled: false, ot_threshold: 40, ot_multiplier: 1.5, payday_weekday: 5, timeoff_notice_days: 14, max_shift_hours: 12 },
       users: [], invites: [], entries: [], edits: [], requests: [], payments: [], notifications: []
     };
     const s = D.settings;
@@ -65,8 +65,9 @@
         const sum = weekSummary(u, ws, s);
         if (sum.gross > 0) {
           const paidAt = at(payDateFor(ws, s), 9, 30);
-          D.payments.push({ id: nextId(), user_id: u.id, week_start: ws, hours: sum.hours, ot_hours: 0, rate: u.hourly_rate, amount: sum.gross, paid_at: paidAt, paid_by: owner.id });
-          notifyAt(u.id, 'Payment sent', `Your pay of ${money(sum.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${sum.hours} hrs) has been sent. You will receive it shortly.`, paidAt);
+          const eta = addDays(payDateFor(ws, s), 3);
+          D.payments.push({ id: nextId(), user_id: u.id, week_start: ws, hours: sum.hours, ot_hours: 0, rate: u.hourly_rate, amount: sum.gross, paid_at: paidAt, paid_by: owner.id, eta });
+          notifyAt(u.id, 'Payment sent', `Your pay of ${money(sum.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${sum.hours} hrs) has been sent. It should arrive on ${niceDate(eta)}.`, paidAt);
         }
       }
     }
@@ -174,7 +175,7 @@
 
   route('GET', '/api/me/dashboard', { auth: true }, ({ user }) => {
     const s = S(), ws = currentWeekStart(s), week = weekSummary(user, ws, s), history = [];
-    for (let i = 1; i <= 8; i++) { const w = weekSummary(user, addDays(ws, -7 * i), s); if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at } }); }
+    for (let i = 1; i <= 8; i++) { const w = weekSummary(user, addDays(ws, -7 * i), s); if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at, eta: w.payment.eta } }); }
     return { open: openEntry(user.id) || null, week, history, settings: { ot_enabled: s.ot_enabled, ot_threshold: s.ot_threshold, ot_multiplier: s.ot_multiplier, max_shift_hours: s.max_shift_hours } };
   });
   route('GET', '/api/me/week', { auth: true }, ({ user, query }) => { const s = S(); return weekSummary(user, parseYmd(query.start) ? weekStartOf(query.start, s) : currentWeekStart(s), s); });
@@ -344,7 +345,7 @@
       if (!u.active && w.hours === 0 && !w.payment) continue;
       if (w.hours === 0 && !w.payment) { rows.push({ user_id: u.id, name: u.name, idle: true }); continue; }
       rows.push({ user_id: u.id, name: u.name, role: u.role, rate: u.hourly_rate, hours: w.hours, regular: w.regular, overtime: w.overtime, gross: w.gross, open: w.open,
-        payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name }, changed: !!(w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01) });
+        payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name, eta: w.payment.eta }, changed: !!(w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01) });
     }
     return rows;
   }
@@ -362,8 +363,24 @@
     if (w.open) fail(400, `${t.name} is still clocked in for this week. Clock them out first.`);
     if (body.expected_amount !== undefined && Math.abs(Number(body.expected_amount) - w.gross) >= 0.01) fail(409, 'Hours changed while you were looking. Refresh and check again.');
     if (D.payments.some((p) => p.user_id === t.id && p.week_start === ws)) fail(409, `${t.name} is already marked paid for this week.`);
-    D.payments.push({ id: nextId(), user_id: t.id, week_start: ws, hours: w.hours, ot_hours: w.overtime, rate: t.hourly_rate, amount: w.gross, paid_at: Date.now(), paid_by: user.id });
-    notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. You will receive it shortly.`);
+    const eta = checkEta(body.eta, s);
+    D.payments.push({ id: nextId(), user_id: t.id, week_start: ws, hours: w.hours, ot_hours: w.overtime, rate: t.hourly_rate, amount: w.gross, paid_at: Date.now(), paid_by: user.id, eta });
+    notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. It should arrive ${etaWords(eta, s)}.`);
+    return { ok: true };
+  });
+  function checkEta(v, s) {
+    if (!parseYmd(v)) fail(400, 'Pick the date the money will arrive');
+    const today = ymdOf(Date.now(), s.timezone);
+    if (v < today) fail(400, 'The arrival date cannot be in the past');
+    if (v > addDays(today, 30)) fail(400, 'Pick an arrival date within the next 30 days');
+    return v;
+  }
+  function etaWords(eta, s) { const today = ymdOf(Date.now(), s.timezone); return eta === today ? 'today' : eta === addDays(today, 1) ? `tomorrow, ${niceDate(eta)}` : `on ${niceDate(eta)}`; }
+  route('POST', '/api/admin/payroll/eta', { auth: true, roles: ['owner'] }, ({ body }) => {
+    const s = S(), ws = weekStartOf(body.week_start, s);
+    const p = D.payments.find((x) => x.user_id === Number(body.user_id) && x.week_start === ws); if (!p) fail(404, 'This week is not marked paid yet');
+    const eta = checkEta(body.eta, s); if (eta === p.eta) return { ok: true };
+    p.eta = eta; notify(p.user_id, 'Pay arrival date changed', `Your pay of ${money(p.amount)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} should now arrive ${etaWords(eta, s)}.`);
     return { ok: true };
   });
   route('POST', '/api/admin/payroll/unmark', { auth: true, roles: ['owner'] }, ({ body }) => {

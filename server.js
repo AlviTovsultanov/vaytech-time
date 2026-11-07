@@ -115,6 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, created_at);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `);
 try { db.exec('ALTER TABLE time_entries ADD COLUMN auto_capped INTEGER NOT NULL DEFAULT 0'); } catch { /* already there */ }
+try { db.exec('ALTER TABLE payments ADD COLUMN eta TEXT'); } catch { /* already there */ }
 
 const DEFAULT_SETTINGS = {
   company_name: 'VayTech',
@@ -453,7 +454,7 @@ route('GET', '/api/me/dashboard', { auth: true }, (req, res, { user }) => {
   const history = [];
   for (let i = 1; i <= 8; i++) {
     const w = weekSummary(user, addDays(ws, -7 * i), s);
-    if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at } });
+    if (w.hours > 0 || w.payment) history.push({ week_start: w.week_start, week_end: w.week_end, pay_date: w.pay_date, hours: w.hours, overtime: w.overtime, gross: w.gross, payment: w.payment && { amount: w.payment.amount, paid_at: w.payment.paid_at, eta: w.payment.eta } });
   }
   return { open: openEntry(user.id) || null, week, history, settings: { ot_enabled: s.ot_enabled, ot_threshold: s.ot_threshold, ot_multiplier: s.ot_multiplier, max_shift_hours: s.max_shift_hours } };
 });
@@ -758,7 +759,7 @@ function payrollRows(weekStart, s) {
     if (w.hours === 0 && !w.payment) { rows.push({ user_id: u.id, name: u.name, role: u.role, rate: u.hourly_rate, hours: 0, regular: 0, overtime: 0, gross: 0, open: false, payment: null, idle: true }); continue; }
     rows.push({
       user_id: u.id, name: u.name, role: u.role, rate: u.hourly_rate, hours: w.hours, regular: w.regular, overtime: w.overtime, gross: w.gross, open: w.open,
-      payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name },
+      payment: w.payment && { amount: w.payment.amount, hours: w.payment.hours, paid_at: w.payment.paid_at, paid_by_name: w.payment.paid_by_name, eta: w.payment.eta },
       changed: !!(w.payment && Math.abs(w.payment.amount - w.gross) >= 0.01)
     });
   }
@@ -790,13 +791,38 @@ route('POST', '/api/admin/payroll/mark', { auth: true, roles: ['owner'] }, (req,
   if (w.gross <= 0) fail(400, 'Nothing to pay for this week');
   if (w.open) fail(400, `${t.name} is still clocked in for this week. Clock them out first.`);
   if (body.expected_amount !== undefined && Math.abs(Number(body.expected_amount) - w.gross) >= 0.01) fail(409, 'Hours changed while you were looking. Refresh and check again.');
+  const eta = checkEta(body.eta, s);
   try {
-    db.prepare('INSERT INTO payments (user_id, week_start, hours, ot_hours, rate, amount, paid_at, paid_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(t.id, ws, w.hours, w.overtime, t.hourly_rate, w.gross, Date.now(), user.id);
+    db.prepare('INSERT INTO payments (user_id, week_start, hours, ot_hours, rate, amount, paid_at, paid_by, eta) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(t.id, ws, w.hours, w.overtime, t.hourly_rate, w.gross, Date.now(), user.id, eta);
   } catch (err) {
     if (String(err.message).includes('UNIQUE')) fail(409, `${t.name} is already marked paid for this week.`);
     throw err;
   }
-  notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. You will receive it shortly.`);
+  notify(t.id, 'Payment sent', `Your pay of ${money(w.gross)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} (${w.hours} hrs) has been sent. It should arrive ${etaWords(eta, s)}.`);
+  return { ok: true };
+});
+function checkEta(v, s) {
+  if (!parseYmd(v)) fail(400, 'Pick the date the money will arrive');
+  const today = ymdOf(Date.now(), s.timezone);
+  if (v < today) fail(400, 'The arrival date cannot be in the past');
+  if (v > addDays(today, 30)) fail(400, 'Pick an arrival date within the next 30 days');
+  return v;
+}
+function etaWords(eta, s) {
+  const today = ymdOf(Date.now(), s.timezone);
+  if (eta === today) return 'today';
+  if (eta === addDays(today, 1)) return `tomorrow, ${niceDate(eta)}`;
+  return `on ${niceDate(eta)}`;
+}
+route('POST', '/api/admin/payroll/eta', { auth: true, roles: ['owner'] }, (req, res, { body }) => {
+  const s = getSettings();
+  const ws = parseYmd(body.week_start) ? weekStartOf(body.week_start, s) : fail(400, 'Bad week');
+  const p = db.prepare('SELECT * FROM payments WHERE user_id = ? AND week_start = ?').get(Number(body.user_id), ws);
+  if (!p) fail(404, 'This week is not marked paid yet');
+  const eta = checkEta(body.eta, s);
+  if (eta === p.eta) return { ok: true };
+  db.prepare('UPDATE payments SET eta = ? WHERE id = ?').run(eta, p.id);
+  notify(p.user_id, 'Pay arrival date changed', `Your pay of ${money(p.amount)} for ${niceDate(ws)} – ${niceDate(addDays(ws, 6))} should now arrive ${etaWords(eta, s)}.`);
   return { ok: true };
 });
 route('POST', '/api/admin/payroll/unmark', { auth: true, roles: ['owner'] }, (req, res, { body }) => {
@@ -810,9 +836,9 @@ route('GET', '/api/admin/payroll.csv', { auth: true, roles: ['owner'] }, (req, r
   const s = getSettings();
   const ws = parseYmd(query.week) ? weekStartOf(query.week, s) : addDays(currentWeekStart(s), -7);
   const esc = (v) => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
-  const lines = [['Name', 'Role', 'Week start', 'Week end', 'Total hours', 'Regular hours', 'Overtime hours', 'Rate', 'Gross pay', 'Paid', 'Paid amount', 'Paid on'].join(',')];
+  const lines = [['Name', 'Role', 'Week start', 'Week end', 'Total hours', 'Regular hours', 'Overtime hours', 'Rate', 'Gross pay', 'Paid', 'Paid amount', 'Paid on', 'Arrives'].join(',')];
   for (const r of payrollRows(ws, s).filter((x) => !x.idle)) {
-    lines.push([r.name, r.role, ws, addDays(ws, 6), r.hours, r.regular, r.overtime, r.rate, r.gross, r.payment ? 'yes' : 'no', r.payment ? r.payment.amount : '', r.payment ? ymdOf(r.payment.paid_at, s.timezone) : ''].map(esc).join(','));
+    lines.push([r.name, r.role, ws, addDays(ws, 6), r.hours, r.regular, r.overtime, r.rate, r.gross, r.payment ? 'yes' : 'no', r.payment ? r.payment.amount : '', r.payment ? ymdOf(r.payment.paid_at, s.timezone) : '', r.payment && r.payment.eta ? r.payment.eta : ''].map(esc).join(','));
   }
   send(res, 200, lines.join('\n') + '\n', { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="payroll-${ws}.csv"` });
   return undefined;

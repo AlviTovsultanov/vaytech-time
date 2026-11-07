@@ -108,13 +108,23 @@ test('full flow', async (t) => {
   assert.ok(notes.items.some((n) => n.title === 'Your hours were updated'));
 
   // mark paid, double pay blocked
-  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 999 })).status, 409, 'stale amount blocked');
-  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 1000 })).status, 200);
-  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 1000 })).status, 409, 'no double pay');
+  const todayYmd = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
+  const inDays = (n) => { const d = new Date(todayYmd + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const eta = inDays(3);
+  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 999, eta })).status, 409, 'stale amount blocked');
+  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 1000 })).status, 400, 'arrival date required');
+  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 1000, eta: inDays(-1) })).status, 400, 'no past arrival date');
+  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 1000, eta })).status, 200);
+  assert.equal((await owner('POST', '/api/admin/payroll/mark', { user_id: techId, week_start: lastWeek, expected_amount: 1000, eta })).status, 409, 'no double pay');
   const paidNote = (await tech('GET', '/api/notifications')).data.items.find((n) => n.title === 'Payment sent');
-  assert.ok(paidNote && paidNote.body.includes('$1,000.00') && paidNote.body.includes('receive it shortly'));
+  assert.ok(paidNote && paidNote.body.includes('$1,000.00') && /should arrive on \w{3}, \w{3} \d+/.test(paidNote.body), paidNote && paidNote.body);
   dash = (await tech('GET', '/api/me/dashboard')).data;
   assert.equal(dash.history[0].payment.amount, 1000);
+  assert.equal(dash.history[0].payment.eta, eta);
+  // change the arrival date later
+  assert.equal((await owner('POST', '/api/admin/payroll/eta', { user_id: techId, week_start: lastWeek, eta: inDays(5) })).status, 200);
+  assert.ok((await tech('GET', '/api/notifications')).data.items.some((n) => n.title === 'Pay arrival date changed'));
+  assert.equal((await tech('GET', '/api/me/dashboard')).data.history[0].payment.eta, inDays(5));
 
   // editing a paid week flags it
   const entry = db.prepare('SELECT id FROM time_entries WHERE user_id = ? ORDER BY clock_in LIMIT 1').get(techId);
