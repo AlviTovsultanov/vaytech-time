@@ -403,10 +403,15 @@
     return items.map((r) => `<div class="card">
       <div class="row between"><div class="grow"><div style="font-weight:700">${manage ? esc(r.user_name) + ' · ' : ''}${esc(r.type_label)}</div><div class="muted small">${esc(range(r.start_date, r.end_date))}</div></div>${statusPill(r.status)}</div>
       ${r.reason ? `<div style="margin-top:10px;font-size:14px">${esc(r.reason)}</div>` : ''}
-      ${r.decided_by_name && r.status !== 'pending' ? `<div class="muted small" style="margin-top:8px">${r.status === 'approved' ? 'Approved' : 'Denied'} by ${esc(r.decided_by_name)}${r.decision_note ? ` — “${esc(r.decision_note)}”` : ''}</div>` : ''}
+      <div class="trail">
+        <div><span class="dot"></span><span><b>Requested</b>${manage ? ` by ${esc(r.user_name)}` : ''} · ${esc(fmtDT(r.created_at))}</span></div>
+        ${r.decided_at && (r.status === 'approved' || r.status === 'denied') ? `<div><span class="dot ${r.status === 'approved' ? 'on' : 'bad'}"></span><span><b>${r.type === 'correction' ? (r.status === 'approved' ? 'Fixed' : 'Not changed') : r.status === 'approved' ? 'Approved' : 'Denied'}</b> by ${esc(r.decided_by_name || 'someone')}${r.decided_by_role === 'owner' ? ' (owner)' : ''} · ${esc(fmtDT(r.decided_at))}${r.decision_note ? `<br><span class="muted">“${esc(r.decision_note)}”</span>` : ''}</span></div>` : ''}
+        ${r.status === 'cancelled' ? '<div><span class="dot"></span><span>Cancelled by the person who asked</span></div>' : ''}
+        ${r.status === 'pending' ? '<div><span class="dot warn"></span><span class="muted">Waiting for a decision</span></div>' : ''}
+      </div>
       ${manage && r.status === 'pending' ? `<div class="btn-row" style="margin-top:14px"><button class="btn danger sm" data-deny="${r.id}">Deny</button>${r.type === 'correction' ? `<button class="btn ghost sm" data-fixhours="${r.user_id}" data-day="${r.start_date}">Open hours</button>` : ''}<button class="btn ok sm" data-approve="${r.id}">${r.type === 'correction' ? 'Mark fixed' : 'Approve'}</button></div>` : ''}
       ${!manage && r.status === 'pending' ? `<button class="btn ghost sm" style="margin-top:12px" data-cancel="${r.id}">Cancel</button>` : ''}
-      <div class="muted small" style="margin-top:8px;font-size:12px">Sent ${esc(ago(r.created_at))}</div></div>`).join('');
+      </div>`).join('');
   }
   function newRequest(type) {
     const notice = S.boot.settings.timeoff_notice_days;
@@ -500,11 +505,20 @@
   }
 
   async function viewApprovals(v) {
-    const r = await api('GET', `/api/team/requests?status=${S.apprStatus}`);
+    S.reqType = S.reqType || ''; S.reqUser = S.reqUser || '';
+    const r = await api('GET', `/api/team/requests?status=${S.apprStatus}&type=${S.reqType}&user=${S.reqUser}`);
+    const counts = r.items.reduce((a, x) => { a[x.status] = (a[x.status] || 0) + 1; return a; }, {});
     v.innerHTML = `<h1>Requests</h1>
-      <div class="seg">${[['pending', 'Waiting'], ['approved', 'Approved'], ['denied', 'Denied']].map(([k, l]) => `<button class="${S.apprStatus === k ? 'on' : ''}" data-st="${k}">${l}</button>`).join('')}</div>
+      <div class="seg">${[['pending', 'Waiting'], ['approved', 'Approved'], ['denied', 'Denied'], ['all', 'All']].map(([k, l]) => `<button class="${S.apprStatus === k ? 'on' : ''}" data-st="${k}">${l}</button>`).join('')}</div>
+      <div class="split" style="margin-bottom:12px">
+        <select class="input" id="f-type" aria-label="Type"><option value="">All types</option><option value="time_off" ${S.reqType === 'time_off' ? 'selected' : ''}>Day off</option><option value="sick" ${S.reqType === 'sick' ? 'selected' : ''}>Sick leave</option><option value="correction" ${S.reqType === 'correction' ? 'selected' : ''}>Hours fix</option></select>
+        <select class="input" id="f-user" aria-label="Person"><option value="">Everyone</option>${r.people.map((p) => `<option value="${p.id}" ${String(p.id) === String(S.reqUser) ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+      </div>
+      ${S.apprStatus === 'all' && r.items.length ? `<p class="muted small" style="margin:0 0 12px">${r.items.length} request${r.items.length === 1 ? '' : 's'} · ${counts.approved || 0} approved · ${counts.denied || 0} denied · ${counts.pending || 0} waiting${counts.cancelled ? ` · ${counts.cancelled} cancelled` : ''}. Newest first.</p>` : ''}
       ${requestList(r.items, true)}`;
     v.querySelectorAll('[data-st]').forEach((b) => { b.onclick = () => { S.apprStatus = b.dataset.st; showTab(); }; });
+    v.querySelector('#f-type').onchange = (e) => { S.reqType = e.target.value; showTab(); };
+    v.querySelector('#f-user').onchange = (e) => { S.reqUser = e.target.value; showTab(); };
     const decide = (id, status) => {
       const item = r.items.find((x) => x.id === Number(id));
       const verb = status === 'approved' ? (item.type === 'correction' ? 'Mark as fixed' : 'Approve') : 'Deny';

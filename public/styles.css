@@ -189,3 +189,9 @@ input[type="date"].input, input[type="datetime-local"].input { min-height: 50px;
 @keyframes sp { to { transform: rotate(360deg); } }
 [hidden] { display: none !important; }
 label.f.row { display: flex; } label.f.row > span { display: inline; margin: 0; }
+
+.trail { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 7px; font-size: 13px; }
+.trail > div { display: flex; gap: 10px; align-items: baseline; }
+.trail .dot { position: relative; top: -1px; }
+.dot.bad { background: var(--bad); }
+.dot.warn { background: var(--warn); }

@@ -287,10 +287,12 @@
     return { ok: true, paid_week: paidWeek(t, e.clock_in, s) };
   });
   route('GET', '/api/team/requests', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, query }) => {
-    const status = ['pending', 'approved', 'denied', 'cancelled'].includes(query.status) ? query.status : 'pending';
-    const items = D.requests.filter((r) => { const u = userById(r.user_id); return r.status === status && u && (user.role === 'owner' ? u.role !== 'owner' : u.role === 'tech'); })
-      .sort((a, b) => status === 'pending' ? a.start_date.localeCompare(b.start_date) : (b.decided_at - a.decided_at)).map(withLabel);
-    return { items };
+    const status = ['pending', 'approved', 'denied', 'cancelled', 'all'].includes(query.status) ? query.status : 'pending';
+    const mine = (u) => u && (user.role === 'owner' ? u.role !== 'owner' : u.role === 'tech');
+    const items = D.requests.filter((r) => { const u = userById(r.user_id); return mine(u) && (status === 'all' || r.status === status) && (!TYPE_LABEL[query.type] || r.type === query.type) && (!Number(query.user) || r.user_id === Number(query.user)); })
+      .sort((a, b) => status === 'pending' ? a.start_date.localeCompare(b.start_date) : status === 'all' ? b.created_at - a.created_at : (b.decided_at - a.decided_at))
+      .map((r) => ({ ...withLabel(r), decided_by_role: r.decided_by ? (userById(r.decided_by) || {}).role : null }));
+    return { items, people: D.users.filter(mine).sort((a, b) => a.name.localeCompare(b.name)).map((u) => ({ id: u.id, name: u.name })) };
   });
   route('POST', '/api/team/requests/:id/decide', { auth: true, roles: ['owner', 'supervisor'] }, ({ user, params, body }) => {
     const r = D.requests.find((x) => x.id === Number(params.id)); if (!r) fail(404, 'Request not found');

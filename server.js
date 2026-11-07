@@ -677,10 +677,16 @@ route('DELETE', '/api/entries/:id', { auth: true, roles: ['owner', 'supervisor']
 
 route('GET', '/api/team/requests', { auth: true, roles: ['owner', 'supervisor'] }, (req, res, { user, query }) => {
   const roles = user.role === 'owner' ? `('supervisor','tech')` : `('tech')`;
-  const status = ['pending', 'approved', 'denied', 'cancelled'].includes(query.status) ? query.status : 'pending';
-  const items = db.prepare(`SELECT r.*, u.name AS user_name, u.lead_id, d.name AS decided_by_name FROM requests r JOIN users u ON u.id = r.user_id LEFT JOIN users d ON d.id = r.decided_by
-    WHERE u.role IN ${roles} AND r.status = ? ORDER BY ${status === 'pending' ? 'r.start_date ASC' : 'r.decided_at DESC'} LIMIT 200`).all(status).map(requestRow);
-  return { items };
+  const status = ['pending', 'approved', 'denied', 'cancelled', 'all'].includes(query.status) ? query.status : 'pending';
+  const where = [`u.role IN ${roles}`], args = [];
+  if (status !== 'all') { where.push('r.status = ?'); args.push(status); }
+  if (TYPE_LABEL[query.type]) { where.push('r.type = ?'); args.push(query.type); }
+  if (Number(query.user)) { where.push('r.user_id = ?'); args.push(Number(query.user)); }
+  const order = status === 'pending' ? 'r.start_date ASC' : status === 'all' ? 'r.created_at DESC' : 'r.decided_at DESC';
+  const items = db.prepare(`SELECT r.*, u.name AS user_name, u.lead_id, d.name AS decided_by_name, d.role AS decided_by_role FROM requests r JOIN users u ON u.id = r.user_id LEFT JOIN users d ON d.id = r.decided_by
+    WHERE ${where.join(' AND ')} ORDER BY ${order} LIMIT 300`).all(...args).map(requestRow);
+  const people = db.prepare(`SELECT id, name FROM users WHERE role IN ${roles} ORDER BY name COLLATE NOCASE`).all();
+  return { items, people };
 });
 route('POST', '/api/team/requests/:id/decide', { auth: true, roles: ['owner', 'supervisor'] }, (req, res, { user, params, body }) => {
   const r = db.prepare('SELECT * FROM requests WHERE id = ?').get(Number(params.id));

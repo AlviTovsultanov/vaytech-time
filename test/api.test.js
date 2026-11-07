@@ -173,6 +173,18 @@ test('full flow', async (t) => {
   const ap = (await tech('GET', '/api/notifications')).data.items.find((n) => n.title === 'Time off approved');
   assert.ok(ap && ap.body.includes('Have fun'));
 
+  // request history: who asked and when, who decided and when
+  {
+    const all = (await owner('GET', '/api/team/requests?status=all')).data;
+    const hit = all.items.find((x) => x.id === ok.data.id);
+    assert.ok(hit.created_at > 0 && hit.user_name === 'Tom Tech');
+    assert.equal(hit.decided_by_name, 'Lena Lead'); assert.ok(hit.decided_at >= hit.created_at);
+    assert.ok(all.items.some((x) => x.status === 'pending'), 'all includes waiting ones');
+    const sickOnly = (await owner('GET', '/api/team/requests?status=all&type=sick')).data.items;
+    assert.ok(sickOnly.length && sickOnly.every((x) => x.type === 'sick'));
+    assert.ok((await owner('GET', `/api/team/requests?status=all&user=${techId}`)).data.items.every((x) => x.user_id === techId));
+    assert.ok(all.people.some((p) => p.id === techId));
+  }
   // lead's own request goes to owner, and lead can't approve it
   const lr = await lead('POST', '/api/requests', { type: 'sick', start_date: today });
   assert.equal((await lead('POST', `/api/team/requests/${lr.data.id}/decide`, { status: 'approved' })).status, 403);
