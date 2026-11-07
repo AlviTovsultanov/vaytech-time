@@ -650,13 +650,17 @@
     const s = await api('GET', '/api/admin/settings');
     const b = $sheet.querySelector('.sheet-body'); if (!b) return;
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const opts = (sel) => days.map((d, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${d}</option>`).join('');
+    const weekOpts = days.map((d, i) => `<option value="${i}" ${i === s.week_start_day ? 'selected' : ''}>${d} – ${days[(i + 6) % 7]}</option>`).join('');
+    const payOpts = `<option value="-1" ${s.payday_weekday < 0 ? 'selected' : ''}>Exactly on that day</option>` + days.map((d, i) => `<option value="${i}" ${i === s.payday_weekday ? 'selected' : ''}>On the next ${d}</option>`).join('');
     b.innerHTML = `<form><div class="form-err"></div>
       <label class="f"><span>Company name</span><input class="input" name="company_name" value="${esc(s.company_name)}"></label>
-      <div class="split"><label class="f"><span>Week starts</span><select class="input" name="week_start_day">${opts(s.week_start_day)}</select></label>
-      <label class="f"><span>Payday</span><select class="input" name="payday_weekday"><option value="-1" ${s.payday_weekday < 0 ? 'selected' : ''}>No set day</option>${opts(s.payday_weekday)}</select></label></div>
-      <label class="f"><span>Net days (pay is due this many days after the week ends)</span><input class="input" name="pay_delay_days" id="netd" type="number" min="0" max="90" value="${s.pay_delay_days}"></label>
-      <p class="hint" id="payex" style="margin:-6px 0 14px"></p>
+      <h2>Work week</h2>
+      <label class="f"><span>Hours are counted</span><select class="input" name="week_start_day">${weekOpts}</select></label>
+      <h2>Payday</h2>
+      <label class="f"><span>Paid how many days after the week ends? (net days)</span><input class="input" name="pay_delay_days" id="netd" type="number" min="0" max="90" inputmode="numeric" value="${s.pay_delay_days}"></label>
+      <label class="f"><span>Then pay</span><select class="input" name="payday_weekday">${payOpts}</select><div class="hint">“Exactly on that day” pays on day ${s.pay_delay_days || 'N'} even on a weekend. Pick a weekday to always pay on, for example, the next Friday.</div></label>
+      <div class="banner" style="margin-top:-4px"><div id="payex" style="font-weight:600"></div></div>
+      <h2>Other</h2>
       <label class="f row" style="gap:10px"><input type="checkbox" name="ot_enabled" id="ote" ${s.ot_enabled ? 'checked' : ''} style="width:20px;height:20px"><span style="margin:0;color:var(--text)">Pay overtime</span></label>
       <div class="split" id="otf" ${s.ot_enabled ? '' : 'hidden'}><label class="f"><span>Overtime after (hrs/week)</span><input class="input" name="ot_threshold" type="number" step="0.5" value="${s.ot_threshold}"></label>
       <label class="f"><span>Overtime rate (×)</span><input class="input" name="ot_multiplier" type="number" step="0.1" value="${s.ot_multiplier}"></label></div>
@@ -673,7 +677,8 @@
       let pd = addDays(end, Math.max(1, Number(f.pay_delay_days.value) || 0));
       const wd = Number(f.payday_weekday.value);
       if (wd >= 0) while (ymdParts(pd).getUTCDay() !== wd) pd = addDays(pd, 1);
-      b.querySelector('#payex').textContent = `Example: the week ending ${fmtDay(end)} is paid ${fmtDay(pd)}.`;
+      b.querySelector('#payex').textContent = `Example: work week ${fmtShort(addDays(end, -6))} – ${fmtDay(end)} is paid on ${fmtDay(pd)}.`;
+      b.querySelector('#netd').closest('form').querySelector('.hint').textContent = `“Exactly on that day” pays on day ${Number(f.pay_delay_days.value) || 0} even on a weekend. Pick a weekday to always pay on, for example, the next Friday.`;
     };
     ['week_start_day', 'payday_weekday', 'pay_delay_days'].forEach((n) => f[n].addEventListener('input', example));
     example();

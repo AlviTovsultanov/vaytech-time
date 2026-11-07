@@ -135,8 +135,14 @@ const DEFAULT_SETTINGS = {
   timeoff_notice_days: '14',
   max_shift_hours: '12'     // forgot to clock out? shifts are cut to this many hours (0 = no limit)
 };
+const hadNetDays = !!db.prepare(`SELECT 1 FROM settings WHERE key = 'pay_delay_days'`).get() && !!db.prepare(`SELECT 1 FROM settings WHERE key = 'payday_reset_v1'`).get();
 for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
   db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)').run(k, v);
+}
+// One-time: reset payday to "exactly on the net date" (a Saturday payday was set by mistake while choosing the work week).
+if (!hadNetDays) {
+  db.prepare(`UPDATE settings SET value = '-1' WHERE key = 'payday_weekday'`).run();
+  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES ('payday_reset_v1', '1')`).run();
 }
 function getSettings() {
   const s = {};
