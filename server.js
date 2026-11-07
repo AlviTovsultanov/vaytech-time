@@ -943,11 +943,15 @@ function serveStatic(req, res, pathname) {
   fs.readFile(file, (err, data) => {
     if (err) return send(res, 404, 'Not found');
     const ext = path.extname(file);
-    const cache = ext === '.html' || rel === '/sw.js' ? 'no-cache' : 'public, max-age=3600';
+    // Phones must never keep an old copy of the app: code and styles are re-checked on every load,
+    // and the page links them with a version tag so a new release is picked up immediately.
+    const cache = rel.startsWith('/icons/') ? 'public, max-age=86400' : 'no-cache';
+    if (rel === '/index.html') data = Buffer.from(data.toString('utf8').replace(/(href|src)="\/(styles\.css|app\.js)"/g, `$1="/$2?v=${ASSET_VERSION}"`));
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': cache });
     res.end(data);
   });
 }
+const ASSET_VERSION = crypto.createHash('sha256').update(fs.readFileSync(path.join(PUBLIC_DIR, 'app.js'))).update(fs.readFileSync(path.join(PUBLIC_DIR, 'styles.css'))).digest('hex').slice(0, 10);
 
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
